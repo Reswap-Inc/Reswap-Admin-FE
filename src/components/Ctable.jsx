@@ -14,7 +14,7 @@ import {
   List,
   ListItem,
   ListItemIcon,
-  ListItemText,TablePagination,
+  ListItemText, TablePagination,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
@@ -22,9 +22,9 @@ import ArchiveIcon from "@mui/icons-material/Archive";
 import BlockIcon from "@mui/icons-material/Block";
 import { useNavigate } from "react-router-dom";
 
-const Ctable = ({ tableHead, rowData, tableName}) => {
+const Ctable = ({ tableHead, rowData, tableName }) => {
   const [anchorEl, setAnchorEl] = useState(null);
-const navigate =useNavigate()
+  const navigate = useNavigate()
   const handleOpen = (event) => {
     event.stopPropagation(); // Prevent row click event
     setAnchorEl(event.currentTarget);
@@ -45,7 +45,7 @@ const navigate =useNavigate()
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
-
+  console.log(rowData, "rowdataq")
   return (
     <Box>
       <TableContainer component={Paper} sx={{ background: "#fff" }}>
@@ -63,60 +63,64 @@ const navigate =useNavigate()
             </TableRow>
           </TableHead>
           <TableBody>
-            {rowData?.map((row, index) => (
-              <TableRow
-                key={index}
-                sx={{ backgroundColor: "#ffffff", cursor: "pointer", fontFamily: "Open Sans" }}
-                onClick={() => navigate("/listing-details")}
-              >
-                <TableCell sx={{ fontFamily: "Open Sans" }}>{row?.customerId}</TableCell>
-                <TableCell sx={{ fontFamily: "Open Sans" }}>
-                  <img
+            {/* {rowData?.map((row, index) => ( */}
+            <TableRow
+              // key={index}
+              sx={{ backgroundColor: "#ffffff", cursor: "pointer", fontFamily: "Open Sans" }}
+              onClick={() => navigate("/listing-details")}
+            >
+              <TableCell sx={{ fontFamily: "Open Sans" }}>{rowData?.listingId
+              }</TableCell>
+              <TableCell sx={{ fontFamily: "Open Sans" }}>
+                {/* <img
                     src={row?.categoryImagePath || row?.imageUrl || "/tableDefaultImage.jpeg"}
                     alt={row.name}
                     width={30}
                     height={30}
-                  />
-                </TableCell>
-                <TableCell sx={{ fontFamily: "Open Sans" }}>
-                  {row.name?.length > 25 ? (
-                    <Tooltip title={row.name}>
-                      <span>{`${row.name.slice(0, 25)}...`}</span>
-                    </Tooltip>
-                  ) : (
-                    row.customerName
-                  )}
-                </TableCell>
-                {tableName === "subCategories" && (
-                  <TableCell>{row?.categoryId?.name || "---"}</TableCell>
-                )}
-                <TableCell sx={{ fontFamily: "Open Sans" }}>{row?.productsListed}</TableCell>
-                {[...Array(2)].map((_, i) => (
-                  <TableCell key={i}>{!row?.searchEnable ? 12 : "No"}</TableCell>
-                ))}
-                <TableCell>{"---"}</TableCell>
-                <TableCell
-                  sx={{ color: !row?.searchEnable ? "green" : "red" }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {!row?.searchEnable ? "Active" : "No"}
-                  <IconButton onClick={handleOpen}>
-                    <MoreVertIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
+                  /> */}
+                {rowData?.title}
+              </TableCell>
+              <TableCell sx={{ fontFamily: "Open Sans" }}>
+                {rowData?.propertyName?.name}
+              </TableCell>
+
+              <TableCell>{rowData?.unitType || "---"}</TableCell>
+
+              <TableCell sx={{ fontFamily: "Open Sans" }}>{rowData?.location?.address}, {rowData?.location?.city}, {rowData?.location?.state}, {rowData?.location?.country}
+              </TableCell>
+
+              <TableCell>{rowData?.
+                viewCount
+              }</TableCell>
+              <TableCell
+                sx={{ color: rowData?.verified ? "green" : "red" }}
+
+              >
+                {rowData?.verified ? "Active" : "Inactive"}
+
+              </TableCell>
+              <TableCell
+                sx={{ color: rowData?.status == "active" ? "green" : "red" }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {rowData?.status}
+                <IconButton onClick={handleOpen}>
+                  <MoreVertIcon />
+                </IconButton>
+              </TableCell>
+            </TableRow>
+            {/* ))} */}
           </TableBody>
         </Table>
         <TablePagination
-        rowsPerPageOptions={[5, 10, 25]}
-        component="div"
-        count={rowData?.length || 0}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-      />
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={rowData?.length || 0}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
       </TableContainer>
 
       {/* Popover for MoreVertIcon Menu */}

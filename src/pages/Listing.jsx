@@ -24,23 +24,12 @@ import SearchIcon from "@mui/icons-material/Search";
 import { useNavigate } from "react-router-dom";
 import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 
-import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+// import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import FilterListIcon from "@mui/icons-material/FilterList";
 
+import { getListingThunk} from "../network/ListingThunk";
 
-const style = {
-  position: "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: "800px",
-  bgcolor: "background.paper",
-  boxShadow: 24,
-  p: 4,
-  borderRadius: "10px",
-  overflowY: "auto",
-  maxHeight: "95vh",
-};
+
 
 const tableHead = [
   { name: "Listing ID" },
@@ -53,108 +42,109 @@ const tableHead = [
   { name: "Status" },
   // { name: "Actions" },
 ];
-const categories = [
-  {
-    customerId: "CUST001",
-    customerName: "John Doe",
-    productsListed: 15,
-    productDelivered: 12,
-    complaintRaised: 1,
-    totalEarnings: "$1,200",
-    status: "Active",
-    actions: "View | Edit | Delete",
-  },
-  {
-    customerId: "CUST002",
-    customerName: "Jane Smith",
-    productsListed: 20,
-    productDelivered: 18,
-    complaintRaised: 0,
-    totalEarnings: "$1,800",
-    status: "Active",
-    actions: "View | Edit | Delete",
-  },
-  {
-    customerId: "CUST003",
-    customerName: "Alice Johnson",
-    productsListed: 12,
-    productDelivered: 10,
-    complaintRaised: 2,
-    totalEarnings: "$950",
-    status: "Inactive",
-    actions: "View | Edit | Delete",
-  },
-  {
-    customerId: "CUST004",
-    customerName: "Bob Williams",
-    productsListed: 25,
-    productDelivered: 22,
-    complaintRaised: 1,
-    totalEarnings: "$2,500",
-    status: "Active",
-    actions: "View | Edit | Delete",
-  },
-  {
-    customerId: "CUST005",
-    customerName: "Charlie Brown",
-    productsListed: 30,
-    productDelivered: 28,
-    complaintRaised: 0,
-    totalEarnings: "$3,200",
-    status: "Active",
-    actions: "View | Edit | Delete",
-  },
-  {
-    customerId: "CUST006",
-    customerName: "David Miller",
-    productsListed: 18,
-    productDelivered: 15,
-    complaintRaised: 3,
-    totalEarnings: "$1,600",
-    status: "Inactive",
-    actions: "View | Edit | Delete",
-  },
-  {
-    customerId: "CUST007",
-    customerName: "Emma Davis",
-    productsListed: 22,
-    productDelivered: 19,
-    complaintRaised: 1,
-    totalEarnings: "$2,100",
-    status: "Active",
-    actions: "View | Edit | Delete",
-  },
-  {
-    customerId: "CUST008",
-    customerName: "Frank Wilson",
-    productsListed: 16,
-    productDelivered: 14,
-    complaintRaised: 0,
-    totalEarnings: "$1,450",
-    status: "Active",
-    actions: "View | Edit | Delete",
-  },
-  {
-    customerId: "CUST009",
-    customerName: "Grace Lee",
-    productsListed: 21,
-    productDelivered: 20,
-    complaintRaised: 1,
-    totalEarnings: "$2,000",
-    status: "Active",
-    actions: "View | Edit | Delete",
-  },
-  {
-    customerId: "CUST010",
-    customerName: "Henry Moore",
-    productsListed: 14,
-    productDelivered: 12,
-    complaintRaised: 2,
-    totalEarnings: "$1,100",
-    status: "Inactive",
-    actions: "View | Edit | Delete",
-  },
-];
+// const categories = [
+//   {
+//     customerId: listings.body.listingId
+//     ,
+//     customerName: "John Doe",
+//     productsListed: 15,
+//     productDelivered: 12,
+//     complaintRaised: 1,
+//     totalEarnings: "$1,200",
+//     status: "Active",
+//     actions: "View | Edit | Delete",
+//   },
+//   {
+//     customerId: "CUST002",
+//     customerName: "Jane Smith",
+//     productsListed: 20,
+//     productDelivered: 18,
+//     complaintRaised: 0,
+//     totalEarnings: "$1,800",
+//     status: "Active",
+//     actions: "View | Edit | Delete",
+//   },
+//   {
+//     customerId: "CUST003",
+//     customerName: "Alice Johnson",
+//     productsListed: 12,
+//     productDelivered: 10,
+//     complaintRaised: 2,
+//     totalEarnings: "$950",
+//     status: "Inactive",
+//     actions: "View | Edit | Delete",
+//   },
+//   {
+//     customerId: "CUST004",
+//     customerName: "Bob Williams",
+//     productsListed: 25,
+//     productDelivered: 22,
+//     complaintRaised: 1,
+//     totalEarnings: "$2,500",
+//     status: "Active",
+//     actions: "View | Edit | Delete",
+//   },
+//   {
+//     customerId: "CUST005",
+//     customerName: "Charlie Brown",
+//     productsListed: 30,
+//     productDelivered: 28,
+//     complaintRaised: 0,
+//     totalEarnings: "$3,200",
+//     status: "Active",
+//     actions: "View | Edit | Delete",
+//   },
+//   {
+//     customerId: "CUST006",
+//     customerName: "David Miller",
+//     productsListed: 18,
+//     productDelivered: 15,
+//     complaintRaised: 3,
+//     totalEarnings: "$1,600",
+//     status: "Inactive",
+//     actions: "View | Edit | Delete",
+//   },
+//   {
+//     customerId: "CUST007",
+//     customerName: "Emma Davis",
+//     productsListed: 22,
+//     productDelivered: 19,
+//     complaintRaised: 1,
+//     totalEarnings: "$2,100",
+//     status: "Active",
+//     actions: "View | Edit | Delete",
+//   },
+//   {
+//     customerId: "CUST008",
+//     customerName: "Frank Wilson",
+//     productsListed: 16,
+//     productDelivered: 14,
+//     complaintRaised: 0,
+//     totalEarnings: "$1,450",
+//     status: "Active",
+//     actions: "View | Edit | Delete",
+//   },
+//   {
+//     customerId: "CUST009",
+//     customerName: "Grace Lee",
+//     productsListed: 21,
+//     productDelivered: 20,
+//     complaintRaised: 1,
+//     totalEarnings: "$2,000",
+//     status: "Active",
+//     actions: "View | Edit | Delete",
+//   },
+//   {
+//     customerId: "CUST010",
+//     customerName: "Henry Moore",
+//     productsListed: 14,
+//     productDelivered: 12,
+//     complaintRaised: 2,
+//     totalEarnings: "$1,100",
+//     status: "Inactive",
+//     actions: "View | Edit | Delete",
+//   },
+// ];
 const Categories = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -178,7 +168,25 @@ const Categories = () => {
     resetSearch();
   }, [tableset]);
 
+  const  {listings} = useSelector((state) => state.listing);
+  console.log(listings,"listinggg")
 
+  useEffect(() => {
+    dispatch(getListingThunk());
+  }, [dispatch]);
+
+  // const categories = [
+  //   {
+  //     customerId: listings.body.listingId
+  //     ,
+  //     customerName: listings.body.title,
+  //     productsListed: listings.body.listingId,
+  //     productDelivered:listings.body.listingId,
+  //     complaintRaised: listings.body.listingId,
+  //     totalEarnings: listings.body.listingId,
+  //     status: listings.body.listingId,
+  //     actions:listings.body.listingId,
+  //   }]
     const [selectedDate, setSelectedDate] = useState("");
   
     const handleDateChange = (event) => {
@@ -296,7 +304,7 @@ const Categories = () => {
       </Box>
     </Box>
       <Ctable tableHead={tableHead}
-              rowData={categories} />
+              rowData={listings?.body} />
       {isLoading && <CircularProgress />}
     </div>
   );

@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 
 
-import Categories from "./pages/Categories";
+import Categories from "./pages/Listing.jsx";
 import AddForm from "./pages/Addform.js";
 import LoginPage from "./pages/LoginPage/LoginPage";
 import Layout from "./components/Layout";

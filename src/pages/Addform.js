@@ -18,7 +18,8 @@ import {
   Grid,
   IconButton,
   Modal,
-  Dialog
+  Dialog,
+  FormGroup
   // Modal
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -81,30 +82,69 @@ export default function AddForm() {
 
   
   const [formData, setFormData] = React.useState({
-    propertyType: '',
+    title: '',
+    description: '',
+    address1: '',
+    address2: '',
     city: '',
-    addressLine1: '',
-    addressLine2: '',
-    roomNumber: '',
-    nearbyPlaces: '',
-    availableFrom: '',
-    availableTill: '',
-    roommatePreference: '',
-    foodPreference: '',
-    bedrooms: 1,
-    bathrooms: 1,
-    balconies: 1,
-    parking: 1,
-    petsAllowed: 'Not Allowed',
-    furnishing: 'Unfurnished',
-    expectedRent: '',
-    securityDeposit: '',
-    subleaseCharges: '',
-    rentNegotiable: false,
-    depositNegotiable: false,
-    transferNegotiable: false,
-    propertyImages: [],
-    items: {},
+    zip: '',
+    countryCode: 'us',
+    rentAmount: '',
+    depositAmount: '',
+    propertyType: '', // apartment or townhouse
+    feesAmount: '',
+    
+    petsAllowed: [],
+    petsPresent: [],
+    
+    roomatePreferences: [],
+    foodPreferences: [],
+    
+    configurationHouse: {
+      bedrooms: 1,
+      bathrooms: 1,
+      kitchen: 1,
+      balcony: 1
+    },
+    
+    ammenitiesIncluded: {
+      onsiteLaundry: false,
+      attachedBalcony: false,
+      water: false,
+      sweage: false,
+      trash: false,
+      electricity: false,
+      wifi: false,
+      landscaping: false,
+      pool: false,
+      gym: false,
+      commonStudyArea: false
+    },
+    
+    belongingsIncluded: false,
+    comesWithFurniture: false,
+    
+    furnitureDetails: {
+      // Will be populated dynamically
+    },
+    
+    furnitureImages: [],
+    unitImages: [],
+    
+    isOwnedByPropertyManager: false,
+    
+    availability: {
+      startDate: '', // YYYYMMDD
+      endDate: '', // YYYYMMDD
+      flexible: false
+    },
+    
+    roomateDetails: [
+      {
+        countryCode: '+1',
+        phoneNumber: ''
+      }
+    ]
   });
 
   const [furnishingItems] = React.useState([
@@ -129,11 +169,22 @@ export default function AddForm() {
   };
   const handleChange = (event) => {
     const { name, value } = event.target;
+    const nameParts = name.split('.');
     
-    if (["bedrooms", "bathrooms", "balconies", "parking"].includes(name) && value == "5+") {
-      setOpen(true);
+    if (nameParts.length === 1) {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [nameParts[0]]: {
+          ...prev[nameParts[0]],
+          [nameParts[1]]: value
+        }
+      }));
     }
-    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const totalSteps = () => steps.length;
@@ -158,16 +209,75 @@ export default function AddForm() {
     setActiveStep(0);
     setCompleted({});
     setFormData({
-      propertyType: '', city: '', addressLine1: '', addressLine2: '', roomNumber: '', nearbyPlaces: '', availableFrom: '', availableTill: '', bedrooms: 1, bathrooms: 1, balconies: 1, parking: 1, petsAllowed: 'Not Allowed', furnishing: 'Unfurnished', expectedRent: '', securityDeposit: '', subleaseCharges: '', roommatePreference: '', foodPreference: '', rentNegotiable: false, depositNegotiable: false, transferNegotiable: false, propertyImages: [], items: {},
+      title: '',
+      description: '',
+      address1: '',
+      address2: '',
+      city: '',
+      zip: '',
+      countryCode: 'us',
+      rentAmount: '',
+      depositAmount: '',
+      propertyType: '',
+      feesAmount: '',
+      petsAllowed: [],
+      petsPresent: [],
+      roomatePreferences: [],
+      foodPreferences: [],
+      configurationHouse: {
+        bedrooms: 1,
+        bathrooms: 1,
+        kitchen: 1,
+        balcony: 1
+      },
+      ammenitiesIncluded: {
+        onsiteLaundry: false,
+        attachedBalcony: false,
+        water: false,
+        sweage: false,
+        trash: false,
+        electricity: false,
+        wifi: false,
+        landscaping: false,
+        pool: false,
+        gym: false,
+        commonStudyArea: false
+      },
+      belongingsIncluded: false,
+      comesWithFurniture: false,
+      furnitureDetails: {},
+      furnitureImages: [],
+      unitImages: [],
+      isOwnedByPropertyManager: false,
+      availability: {
+        startDate: '',
+        endDate: '',
+        flexible: false
+      },
+      roomateDetails: [
+        {
+          countryCode: '+1',
+          phoneNumber: ''
+        }
+      ]
     });
   };
 
-  const handleImageUpload = (event) => {
-    const files = Array.from(event.target.files);
-    setFormData(prev => ({
-      ...prev,
-      propertyImages: [...prev.propertyImages, ...files]
-    }));
+  const handleImageUpload = (type, files) => {
+    const imagePromises = Array.from(files).map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(file);
+      });
+    });
+
+    Promise.all(imagePromises).then(base64Images => {
+      setFormData(prev => ({
+        ...prev,
+        [`${type}Images`]: [...prev[`${type}Images`], ...base64Images]
+      }));
+    });
   };
 
   const handleImageRemove = (index) => {
@@ -208,6 +318,50 @@ export default function AddForm() {
     }));
   };
 
+  const handleAmmenityChange = (ammenity) => {
+    setFormData(prev => ({
+      ...prev,
+      ammenitiesIncluded: {
+        ...prev.ammenitiesIncluded,
+        [ammenity]: !prev.ammenitiesIncluded[ammenity]
+      }
+    }));
+  };
+
+  const handleArrayChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: prev[field].includes(value)
+        ? prev[field].filter(item => item !== value)
+        : [...prev[field], value]
+    }));
+  };
+
+  const handleFurnitureChange = (item, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      furnitureDetails: {
+        ...prev.furnitureDetails,
+        [item]: {
+          ...prev.furnitureDetails[item],
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  const handleDateChange = (field, value) => {
+    const formattedDate = value ? value.replace(/-/g, '') : '';
+    
+    setFormData(prev => ({
+      ...prev,
+      availability: {
+        ...prev.availability,
+        [field]: formattedDate
+      }
+    }));
+  };
+
   const getStepContent = (step) => {
     switch (step) {
       case 0:
@@ -215,7 +369,7 @@ export default function AddForm() {
           <Box sx={{ color: '#333', backgroundColor: '#ffffff' }}>
             <Typography variant="h6" sx={{ color: '#10552F', mb: 3 }}>Select Property Type</Typography>
             <Box display="flex" flexWrap="wrap" gap={1} mt={1} mb={2}>
-              {["Apartment", "Independent House/ Villa", "Shared Room", "Private Room with Shared Bathroom", "Private Room with Private Bathroom"].map((type) => (
+              {["Apartment", "Independent House/ Villa", "Shared Room", "Private Room with Shared Bathroom", "Private Room with Private Bathroom"]?.map((type) => (
                 <Button
                   key={type}
                   variant={formData.propertyType === type ? "contained" : "outlined"}
@@ -240,7 +394,7 @@ export default function AddForm() {
 
             <Typography variant="h6" sx={{ color: '#10552F', mb: 3 }}>Select Unit Type</Typography>
             <Box display="flex" flexWrap="wrap" gap={1} mt={1} mb={2}>
-              {["1BHK", "2BHK", "3BHK", "4BHK"].map((type) => (
+              {["1BHK", "2BHK", "3BHK", "4BHK"]?.map((type) => (
                 <Button
                   key={type}
                   variant={formData.propertyType === type ? "contained" : "outlined"}
@@ -264,8 +418,8 @@ export default function AddForm() {
             {/* Location Details */}
             <Typography variant="h6">Location Details</Typography>
             <TextField fullWidth margin="normal" label="City" name="city" value={formData.city} onChange={handleChange} />
-            <TextField fullWidth margin="normal" label="Address Line 1" name="addressLine1" value={formData.addressLine1} onChange={handleChange} />
-            <TextField fullWidth margin="normal" label="Address Line 2" name="addressLine2" value={formData.addressLine2} onChange={handleChange} />
+            <TextField fullWidth margin="normal" label="Address Line 1" name="address1" value={formData.address1} onChange={handleChange} />
+            <TextField fullWidth margin="normal" label="Address Line 2" name="address2" value={formData.address2} onChange={handleChange} />
             <TextField fullWidth margin="normal" label="Room Number" name="roomNumber" value={formData.roomNumber} onChange={handleChange} />
 
             {/* Nearby Places */}
@@ -430,7 +584,7 @@ export default function AddForm() {
                     }
                   }}
                 >
-                  {["0","1", "2", "3", "4", "5+"].map((item) => (
+                  {["0","1", "2", "3", "4", "5+"]?.map((item) => (
                     <ToggleButton key={item} value={item}>{item}</ToggleButton>
                   ))}
                 </ToggleButtonGroup>
@@ -454,7 +608,7 @@ export default function AddForm() {
                     }
                   }}
                 >
-                  {["0","1", "2", "3", "4", "5+"].map((item) => (
+                  {["0","1", "2", "3", "4", "5+"]?.map((item) => (
                     <ToggleButton key={item} value={item}>{item}</ToggleButton>
                   ))}
                 </ToggleButtonGroup>
@@ -519,12 +673,13 @@ export default function AddForm() {
               <Box mt={2} p={2} bgcolor="#f0f7f2" borderRadius="8px">
               <Typography variant="subtitle1" fontWeight="bold">Furniture Includes</Typography>
               <Button onClick={()=>setopenall((prev)=>!prev)}>Add More</Button>
+              {furnishingItems}
             </Box>
             </Grid>
             <Box sx={{ p: 2 }}>
       <Typography variant="h6">Furniture Images</Typography>
       <Grid container spacing={2}>
-        {images.map((image, index) => (
+        {images?.map((image, index) => (
           <Grid item xs={4} key={index}>
             <Box
               sx={{
@@ -622,7 +777,7 @@ export default function AddForm() {
               borderRadius: 2,
               p: 2
             }}>
-              {furnishingItems.map((item) => (
+              {furnishingItems?.map((item) => (
                 <Grid 
                   container 
                   key={item} 
@@ -751,7 +906,7 @@ export default function AddForm() {
               </label>
               {/* Image Preview Grid */}
               <Grid container spacing={2} sx={{ marginTop: 2 }}>
-                {formData.propertyImages.map((image, index) => (
+                {formData.propertyImages?.map((image, index) => (
                   <Grid item xs={12} sm={6} md={4} key={index}>
                     <Box sx={{ position: 'relative' }}>
                       <img src={URL.createObjectURL(image)} alt={image.name} style={{ width: '100%', height: 'auto' }} />
@@ -899,7 +1054,7 @@ export default function AddForm() {
                   borderRadius: 2,
                   p: 2
                 }}>
-                  {furnishingItems.map((item) => (
+                  {furnishingItems?.map((item) => (
                     <Grid 
                       container 
                       key={item} 
