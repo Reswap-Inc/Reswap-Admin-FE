@@ -1,0 +1,4 @@
+src/pages/ChatApp.js -> src/pages/ChatApp.js
+src/pages/AddForm.js -> src/pages/AddForm.js
+src/pages/Categories.js -> src/pages/Categories.js
+src/components/SearchBar.js -> src/components/SearchBar.js

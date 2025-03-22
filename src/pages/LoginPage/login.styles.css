@@ -1,0 +1,56 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+/* .background-wrapper svg {
+  position: absolute;
+
+  height: auto;
+  opacity: 1;
+} */
+.background-wrapper {
+  background-image: url("../../assets/images/r_login.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  width: 100%;
+  height: 100vh;
+}
+
+
+/* 
+/* Top-left SVG */
+/* .background-wrapper svg:first-of-type {
+  top: 0;
+  left: 0;
+ 
+} */
+
+/* Bottom-right SVG */
+/* .background-wrapper svg:last-of-type {
+  bottom: 0;
+  right: 0;
+  transform: translate(25%, 25%);
+  transform: rotate(-180deg);
+} */
+
+input[type="password"]::-webkit-textfield-decoration-container {
+  display: none !important;
+}
+
+.error-message {
+  color: red;
+  font-size: 14px;
+  padding: 3px;
+}
+
+/* .forgot-password-btn {
+  text-decoration: none;
+
+}
+
+.forgot-password-btn:hover {
+  text-decoration: underline;
+
+} */

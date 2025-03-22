@@ -1,0 +1,42 @@
+/* App.css */
+
+/* Basic flexbox setup */
+.flex {
+  display: flex;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 20%; /* Sidebar takes 20% of the width */
+  background-color: white; /* Sidebar background color */
+  z-index: 1000;
+}
+
+.main-content {
+  margin-left: 20%; /* Adjust based on sidebar visibility */
+  padding: 20px;
+  background-color: white;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.md\:ml-72 {
+  margin-left: 18rem; /* Adjust for sidebar width */
+}
+
+.w-full {
+  width: 100%;
+}
+
+/* Adjust for mobile views */
+@media (max-width: 900px) {
+  .main-content {
+    margin-left: 0;
+  }
+  .sidebar {
+    display: none; /* Hide sidebar on smaller screens */
+  }
+}
