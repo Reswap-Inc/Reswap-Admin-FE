@@ -14,7 +14,9 @@ import {
   List,
   ListItem,
   ListItemIcon,
-  ListItemText, TablePagination,
+  ListItemText,
+  TablePagination,
+  Typography,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
@@ -22,7 +24,7 @@ import ArchiveIcon from "@mui/icons-material/Archive";
 import BlockIcon from "@mui/icons-material/Block";
 import { useNavigate } from "react-router-dom";
 
-const Ctable = ({ tableHead, rowData, tableName }) => {
+const Ctable = ({ tableHead, rowData, tableName, pagination, setPage, setRowsPerPage }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const navigate = useNavigate()
   const handleOpen = (event) => {
@@ -33,18 +35,30 @@ const Ctable = ({ tableHead, rowData, tableName }) => {
   const handleClose = () => {
     setAnchorEl(null);
   };
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+ 
 
   // Handlers for pagination
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage + 1); // Add 1 as the API expects 1-based pagination
   };
 
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+    setPage(1); // Reset to first page when changing rows per page
   };
+
+  // Helper function to truncate text
+  const truncateText = (text, maxLength = 30) => {
+    if (!text) return "---";
+    return text.length > maxLength ? (
+      <Tooltip title={text}>
+        <Typography noWrap>
+          {text.substring(0, maxLength)}...
+        </Typography>
+      </Tooltip>
+    ) : text;
+  };
+
   console.log(rowData, "rowdataq")
   return (
     <Box>
@@ -63,63 +77,68 @@ const Ctable = ({ tableHead, rowData, tableName }) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {/* {rowData?.map((row, index) => ( */}
-            <TableRow
-              // key={index}
-              sx={{ backgroundColor: "#ffffff", cursor: "pointer", fontFamily: "Open Sans" }}
-              onClick={() => navigate("/listing-details")}
-            >
-              <TableCell sx={{ fontFamily: "Open Sans" }}>{rowData?.listingId
-              }</TableCell>
-              <TableCell sx={{ fontFamily: "Open Sans" }}>
-                {/* <img
-                    src={row?.categoryImagePath || row?.imageUrl || "/tableDefaultImage.jpeg"}
-                    alt={row.name}
-                    width={30}
-                    height={30}
-                  /> */}
-                {rowData?.title}
-              </TableCell>
-              <TableCell sx={{ fontFamily: "Open Sans" }}>
-                {rowData?.propertyName?.name}
-              </TableCell>
-
-              <TableCell>{rowData?.unitType || "---"}</TableCell>
-
-              <TableCell sx={{ fontFamily: "Open Sans" }}>{rowData?.location?.address}, {rowData?.location?.city}, {rowData?.location?.state}, {rowData?.location?.country}
-              </TableCell>
-
-              <TableCell>{rowData?.
-                viewCount
-              }</TableCell>
-              <TableCell
-                sx={{ color: rowData?.verified ? "green" : "red" }}
-
+            {rowData?.map((rowData, index) => (
+              <TableRow
+                key={rowData?.listingId || index}
+                sx={{ 
+                  backgroundColor: "#ffffff", 
+                  cursor: "pointer", 
+                  fontFamily: "Open Sans",
+                  '&:hover': {
+                    backgroundColor: '#f5f5f5'
+                  }
+                }}
+                onClick={() => navigate("/listing-details")}
               >
-                {rowData?.verified ? "Active" : "Inactive"}
+                <TableCell sx={{ fontFamily: "Open Sans" }}>
+                  {rowData?.listingId}
+                </TableCell>
+                <TableCell sx={{ fontFamily: "Open Sans", maxWidth: 200 }}>
+                  {truncateText(rowData?.title, 25)}
+                </TableCell>
+                <TableCell sx={{ fontFamily: "Open Sans", maxWidth: 200 }}>
+                  {truncateText(rowData?.propertyName, 25)}
+                </TableCell>
+                <TableCell>
+                  {rowData?.unitType || "---"}
+                </TableCell>
+                <TableCell sx={{ fontFamily: "Open Sans", maxWidth: 250 }}>
+                  {truncateText(`${rowData?.location?.address}, ${rowData?.location?.city}, ${rowData?.location?.state}, ${rowData?.location?.country}`, 40)}
+                </TableCell>
+                <TableCell>{rowData?.
+                  viewCount
+                }</TableCell>
+                <TableCell
+                  sx={{ color: rowData?.verified ? "green" : "red" }}
 
-              </TableCell>
-              <TableCell
-                sx={{ color: rowData?.status == "active" ? "green" : "red" }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                {rowData?.status}
-                <IconButton onClick={handleOpen}>
-                  <MoreVertIcon />
-                </IconButton>
-              </TableCell>
-            </TableRow>
-            {/* ))} */}
+                >
+                  {rowData?.verified ? "Active" : "Inactive"}
+
+                </TableCell>
+                <TableCell
+                  sx={{ color: rowData?.status == "active" ? "green" : "red" }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {rowData?.status}
+                  <IconButton onClick={handleOpen}>
+                    <MoreVertIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))} 
           </TableBody>
         </Table>
         <TablePagination
           rowsPerPageOptions={[5, 10, 25]}
           component="div"
-          count={rowData?.length || 0}
-          rowsPerPage={rowsPerPage}
-          page={page}
+          count={pagination?.totalItems || 0} // Use total items from pagination
+          rowsPerPage={pagination?.currentItems || 10}
+          page={(pagination?.currentPage || 1) - 1} // Subtract 1 as MUI pagination is 0-based
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
+          labelDisplayedRows={({ from, to, count }) => 
+            `${from}-${to} of ${count !== -1 ? count : `more than ${to}`}`
+          }
         />
       </TableContainer>
 

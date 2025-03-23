@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Ctable from "../components/Ctable";
@@ -27,7 +25,7 @@ import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 // import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import FilterListIcon from "@mui/icons-material/FilterList";
 
-import { getListingThunk} from "../network/ListingThunk";
+import { getListingThunk, getSearchAlllisting} from "../network/ListingThunk";
 
 
 
@@ -42,109 +40,7 @@ const tableHead = [
   { name: "Status" },
   // { name: "Actions" },
 ];
-// const categories = [
-//   {
-//     customerId: listings.body.listingId
-//     ,
-//     customerName: "John Doe",
-//     productsListed: 15,
-//     productDelivered: 12,
-//     complaintRaised: 1,
-//     totalEarnings: "$1,200",
-//     status: "Active",
-//     actions: "View | Edit | Delete",
-//   },
-//   {
-//     customerId: "CUST002",
-//     customerName: "Jane Smith",
-//     productsListed: 20,
-//     productDelivered: 18,
-//     complaintRaised: 0,
-//     totalEarnings: "$1,800",
-//     status: "Active",
-//     actions: "View | Edit | Delete",
-//   },
-//   {
-//     customerId: "CUST003",
-//     customerName: "Alice Johnson",
-//     productsListed: 12,
-//     productDelivered: 10,
-//     complaintRaised: 2,
-//     totalEarnings: "$950",
-//     status: "Inactive",
-//     actions: "View | Edit | Delete",
-//   },
-//   {
-//     customerId: "CUST004",
-//     customerName: "Bob Williams",
-//     productsListed: 25,
-//     productDelivered: 22,
-//     complaintRaised: 1,
-//     totalEarnings: "$2,500",
-//     status: "Active",
-//     actions: "View | Edit | Delete",
-//   },
-//   {
-//     customerId: "CUST005",
-//     customerName: "Charlie Brown",
-//     productsListed: 30,
-//     productDelivered: 28,
-//     complaintRaised: 0,
-//     totalEarnings: "$3,200",
-//     status: "Active",
-//     actions: "View | Edit | Delete",
-//   },
-//   {
-//     customerId: "CUST006",
-//     customerName: "David Miller",
-//     productsListed: 18,
-//     productDelivered: 15,
-//     complaintRaised: 3,
-//     totalEarnings: "$1,600",
-//     status: "Inactive",
-//     actions: "View | Edit | Delete",
-//   },
-//   {
-//     customerId: "CUST007",
-//     customerName: "Emma Davis",
-//     productsListed: 22,
-//     productDelivered: 19,
-//     complaintRaised: 1,
-//     totalEarnings: "$2,100",
-//     status: "Active",
-//     actions: "View | Edit | Delete",
-//   },
-//   {
-//     customerId: "CUST008",
-//     customerName: "Frank Wilson",
-//     productsListed: 16,
-//     productDelivered: 14,
-//     complaintRaised: 0,
-//     totalEarnings: "$1,450",
-//     status: "Active",
-//     actions: "View | Edit | Delete",
-//   },
-//   {
-//     customerId: "CUST009",
-//     customerName: "Grace Lee",
-//     productsListed: 21,
-//     productDelivered: 20,
-//     complaintRaised: 1,
-//     totalEarnings: "$2,000",
-//     status: "Active",
-//     actions: "View | Edit | Delete",
-//   },
-//   {
-//     customerId: "CUST010",
-//     customerName: "Henry Moore",
-//     productsListed: 14,
-//     productDelivered: 12,
-//     complaintRaised: 2,
-//     totalEarnings: "$1,100",
-//     status: "Inactive",
-//     actions: "View | Edit | Delete",
-//   },
-// ];
+
 const Categories = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -167,26 +63,42 @@ const Categories = () => {
     setPage(0);
     resetSearch();
   }, [tableset]);
+  
+  const { listings,pagination
+  } = useSelector((state) => state.AllListingSlice);
 
-  const  {listings} = useSelector((state) => state.listing);
-  console.log(listings,"listinggg")
+  console.log(listings, "listinggg");
+
+  const form = {
+    // currentLocation: {
+    //   lat: 34.0422,
+    //   lng: -118.2337,
+    // }, // Used for distance calculation, not filtering
+
+    // "location.coordinates.lat": {
+    //   $gte: 34,
+    //   $lte: 34.0622,
+    // }, // Numeric filter
+    // "location.coordinates.lng": {
+    //   $gte: -118.2337,
+    //   $lte: -118.2537,
+    // }, // Numeric filter
+
+    // listingId: "LIST100078",
+    // itemType: "rent", // Categorical filter
+    // search: "*Furnished*", // Search filter
+    // postedBy: "RUSC0001", // Filter for listings posted by a specific user
+
+    // sortField: "distance.distance", // Sorting field
+    // sortOrder: "asc", // Sort order
+    page: page, // Pagination
+    limit: rowsPerPage,
+  };
 
   useEffect(() => {
-    dispatch(getListingThunk());
-  }, [dispatch]);
+    dispatch(getSearchAlllisting(form));
+  }, [dispatch, page, rowsPerPage]); 
 
-  // const categories = [
-  //   {
-  //     customerId: listings.body.listingId
-  //     ,
-  //     customerName: listings.body.title,
-  //     productsListed: listings.body.listingId,
-  //     productDelivered:listings.body.listingId,
-  //     complaintRaised: listings.body.listingId,
-  //     totalEarnings: listings.body.listingId,
-  //     status: listings.body.listingId,
-  //     actions:listings.body.listingId,
-  //   }]
     const [selectedDate, setSelectedDate] = useState("");
   
     const handleDateChange = (event) => {
@@ -304,7 +216,8 @@ const Categories = () => {
       </Box>
     </Box>
       <Ctable tableHead={tableHead}
-              rowData={listings?.body} />
+              rowData={listings?.body} pagination={pagination
+} setRowsPerPage={setRowsPerPage} setPage={setPage} />
       {isLoading && <CircularProgress />}
     </div>
   );
