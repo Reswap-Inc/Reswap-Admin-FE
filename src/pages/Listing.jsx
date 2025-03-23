@@ -216,7 +216,7 @@ const Categories = () => {
       </Box>
     </Box>
       <Ctable tableHead={tableHead}
-              rowData={listings?.body} pagination={pagination
+              rowData={listings?.body} pagination={listings?.pagination
 } setRowsPerPage={setRowsPerPage} setPage={setPage} />
       {isLoading && <CircularProgress />}
     </div>

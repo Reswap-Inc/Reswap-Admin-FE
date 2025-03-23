@@ -36,7 +36,7 @@ const Ctable = ({ tableHead, rowData, tableName, pagination, setPage, setRowsPer
     setAnchorEl(null);
   };
  
-
+console.log(pagination,"paginationddddddddddddd")
   // Handlers for pagination
   const handleChangePage = (event, newPage) => {
     setPage(newPage + 1); // Add 1 as the API expects 1-based pagination
