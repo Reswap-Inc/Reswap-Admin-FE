@@ -1,22 +1,27 @@
 import axios from "axios";
-import { CHANGE_PASSWORD, FORGOT_PASSWORD_EMAIL, LOGIN, REGISTRATION, RESET_PASSWORD_EMAIL,cookies } from "../config/endpoints";
+// import { CHANGE_PASSWORD, FORGOT_PASSWORD_EMAIL, LOGIN, REGISTRATION, RESET_PASSWORD_EMAIL,cookies } from "../config/endpoints";
+import { LOGOUT } from "../redux/endpoint";
 
-export const userRegistration = async ({ formData }) => {
+
+export const userLogout = async () => {
   try {
-    const response = await axios.post(REGISTRATION, formData, {
-      headers: {
-        Cookie: cookies 
-      },
-      withCredentials: true, // Required to send cookies in React Native
+    const response = await axios.get(LOGOUT, {
+      withCredentials: true,
+      validateStatus: (status) => status < 400, // Allow redirects
     });
 
-    if (response.status !== 200) {
-      throw new Error(
-        response.data?.message || "Registration failed. Please try again."
-      );
+    console.log("Logout response:", response);
+
+    // Handle Redirect Based on API Response
+    if (response.status === 302 && response.headers.location) {
+      console.log("Redirecting to:", response.headers.location);
+      window.location.href = response.headers.location; // Use the actual redirect URL
+      window.location.href = "reswap/web/admin/user";
+      return;
     }
 
-    return response.data;
+    // If no redirect is provided, fallback to a default page
+    return response
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error(
@@ -30,116 +35,4 @@ export const userRegistration = async ({ formData }) => {
   }
 };
 
-export const userLogin = async ({ formData }) => {
-  try {
-    const response = await axios.post(LOGIN, formData, {
-      headers: {
-        Cookie: cookies 
-      },
-      withCredentials: true, // Required to send cookies in React Native
-    });
 
-    if (response.status !== 200) {
-      throw new Error(
-        response.data?.message || "Login failed. Please try again."
-      );
-    }
-
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error(
-        "Axios error:",
-        error.response?.data?.message || error.message
-      );
-      throw new Error(error.response?.data?.message || "Something went wrong.");
-    } else {
-      throw new Error("An unexpected error occurred. Please try again.");
-    }
-  }
-};
-
-export const userResetPassword = async ({ formData }) => {
-  try {
-    const response = await axios.post(RESET_PASSWORD_EMAIL, formData, {
-      headers: {
-        Cookie: cookies 
-      },
-      withCredentials: true, // Required to send cookies in React Native
-    });
-
-    if (response.status !== 200) {
-      throw new Error(
-        response.data?.message || "Reset failed. Please try again."
-      );
-    }
-
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error(
-        "Axios error:",
-        error.response?.data?.message || error.message
-      );
-      throw new Error(error.response?.data?.message || "Something went wrong.");
-    } else {
-      throw new Error("An unexpected error occurred. Please try again.");
-    }
-  }
-};
-export const userForgetPassword = async ({ formData }) => {
-  try {
-    const response = await axios.post(FORGOT_PASSWORD_EMAIL, formData, {
-      headers: {
-        Cookie: cookies 
-      },
-      withCredentials: true, // Required to send cookies in React Native
-    });
-
-    if (response.status !== 200) {
-      throw new Error(
-        response.data?.message || "Forget failed. Please try again."
-      );
-    }
-
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error(
-        "Axios error:",
-        error.response?.data?.message || error.message
-      );
-      throw new Error(error.response?.data?.message || "Something went wrong.");
-    } else {
-      throw new Error("An unexpected error occurred. Please try again.");
-    }
-  }
-};
-export const userChangePassword = async ({ formData }) => {
-  try {
-    const response = await axios.post(CHANGE_PASSWORD, formData, {
-      headers: {
-        Cookie: cookies 
-      },
-      withCredentials: true, // Required to send cookies in React Native
-    });
-
-    if (response.status !== 200) {
-      throw new Error(
-        response.data?.message || "Forget failed. Please try again."
-      );
-    }
-
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error(
-        "Axios error:",
-        error.response?.data?.message || error.message
-      );
-      throw new Error(error.response?.data?.message || "Something went wrong.");
-    } else {
-      throw new Error("An unexpected error occurred. Please try again.");
-    }
-  }
-};

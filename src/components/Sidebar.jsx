@@ -37,21 +37,21 @@ const Sidebar = () => {
               style={({ isActive }) => ({
                 backgroundColor:
                   isActive ||
-                  (link.path === "/customers"&&link.title=="listing" ) ||
-                  (link.path === "/addform"&&link.title=="listing" )
+                  (link.path === "/reswap/web/admin/home"&&link.title=="listing" ) ||
+                  (link.path === "/reswap/web/admin/addform"&&link.title=="listing" )
                     ? "#03311E"
                     : "",
                 color:
                   isActive ||
-                  (link.path === "/customers"&&link.title=="listing" ) ||
-                  (link.path === "/addform"&&link.title=="listing" )
+                  (link.path === "/reswap/web/admin/home"&&link.title=="listing" ) ||
+                  (link.path === "/reswap/web/admin/addform"&&link.title=="listing" )
                     ? "white"
                     : "#03311E",
               })}
               className={({ isActive }) =>
                 isActive ||
-              (link.path === "/customers"&&link.title=="listing" ) ||
-                  (link.path === "/addform"&&link.title=="listing" )
+              (link.path === "/reswap/web/admin/home"&&link.title=="listing" ) ||
+                  (link.path === "/reswap/web/admin/addform"&&link.title=="listing" )
                   ? activeLink
                   : normalLink
               }

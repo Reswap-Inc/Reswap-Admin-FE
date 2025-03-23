@@ -20,12 +20,12 @@ export const navItems = [
   //   title: "Dashboard",
   // },
   {
-    path: "/customers",
+    path: "/reswap/web/admin/home",
     icon: MdPeople,
     title: "Listing",
   },
   {
-    path: "/user",
+    path: "/reswap/web/admin/user",
     icon: MdPeople,
     title: "User Management",
   },
@@ -65,7 +65,7 @@ export const navItems = [
   //   title: "Operation",
   // },
   {
-    path: "/admin-chat",
+    path: "/reswap/web/admin/admin-chat",
     icon: MdChat,
     title: "Admin Chat",
   },

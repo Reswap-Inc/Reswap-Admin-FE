@@ -5,6 +5,7 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import { useSelector } from 'react-redux';
 import { getListingThunk } from '../network/ListingThunk';
 import { useDispatch } from 'react-redux';
+import { useParams } from 'react-router-dom';
 
 // const property = {
 //   name: 'UNITi Montroseis',
@@ -37,13 +38,18 @@ import { useDispatch } from 'react-redux';
 
 const PropertyDetail = () => {
   const [tabValue, setTabValue] = React.useState(0);
+  const { listingId } = useParams();
   const dispatch=useDispatch()
   const  {listings} = useSelector((state) => state.listing);
   console.log(listings,"listinggg")
 
+ 
+  
   useEffect(() => {
-    dispatch(getListingThunk());
-  }, [dispatch]);
+    if (listingId) {
+      dispatch(getListingThunk(listingId));
+    }
+  }, [dispatch, listingId]);
 const property=listings?.body
 
   return (
@@ -70,9 +76,9 @@ const property=listings?.body
         objectFit: 'cover' 
       }} 
     />
-    <Typography variant="h4" mt={2}>{property.name}</Typography>
+    <Typography variant="h4" mt={2}>{property?.propertyName}</Typography>
     <Typography variant="body1" color="textSecondary">
-      {property.members} Members
+      {property?.members} Members
     </Typography>
   </Box>
       <AppBar position="static" color="default">
@@ -84,14 +90,14 @@ const property=listings?.body
           variant="fullWidth"
         >
           <Tab label="Property Detail" />
-          <Tab label={`Members (${property.members})`} />
+          <Tab label={`Members (${property?.members})`} />
         </Tabs>
       </AppBar>
       
       <Box mt={2}>
         <Typography variant="h5">Property Images</Typography>
         <Grid container spacing={2}>
-          {property.images?.map((img, index) => (
+          {property?.furnitureImages?.map((img, index) => (
             <Grid item xs={12} sm={6} md={3} key={index}>
               <Card>
                 <CardMedia component="img" image={img} alt={`Property ${index}`} />
@@ -105,25 +111,25 @@ const property=listings?.body
       <Card sx={{  margin: "auto", mt: 3, p: 2 }}>
           <CardContent>
             {/* Property Title */}
-            <Typography variant="h4" mt={2}>{property.title}</Typography>
+            <Typography variant="h4" mt={2}>{property?.title}</Typography>
             
             {/* Rent and Deposit */}
             <Grid container spacing={2} mt={2}>
               <Grid item>
                 <Button variant="contained" startIcon={<AttachMoneyIcon />} color="success">
-                  Rent: ${property.price.rent.amount}
+                  Rent: ${property?.price?.rent.amount}
                 </Button>
               </Grid>
               <Grid item>
                 <Button variant="contained" startIcon={<AttachMoneyIcon />} color="warning">
-                  Deposit: ${property.price.deposit.amount}
+                  Deposit: ${property?.price?.deposit.amount}
                 </Button>
               </Grid>
             </Grid>
     
             {/* Location */}
             <Typography variant="body1" mt={2}>
-              {`${property.location.address}, ${property.location.city}, ${property.location.state}, ${property.location.country}`}
+              {`${property?.location?.address}, ${property?.location?.city}, ${property?.location?.state}, ${property?.location?.country}`}
             </Typography>
     
             {/* Amenities */}
@@ -137,7 +143,7 @@ const property=listings?.body
             {/* Furniture */}
             <Typography variant="h6" mt={3}>Furniture</Typography>
             <List>
-              {property.furniture?.map((item, index) => (
+              {property?.furniture?.map((item, index) => (
                 <ListItem key={index}>{item.name}</ListItem>
               ))}
             </List>
@@ -145,16 +151,16 @@ const property=listings?.body
             {/* Roommate Preferences */}
             <Typography variant="h6" mt={3}>Roommate Preferences</Typography>
             <List>
-              {property.roommatePreferences?.map((item, index) => (
-                <ListItem key={index}>{item.preference}</ListItem>
+              {property?.roommatePreferences?.map((item, index) => (
+                <ListItem key={index}>{item.key}:{item.values}</ListItem>
               ))}
             </List>
     
             {/* Food Preferences */}
             <Typography variant="h6" mt={3}>Food Preferences</Typography>
             <List>
-              {property.foodPreferences?.map((item, index) => (
-                <ListItem key={index}>{item.preference}</ListItem>
+              {property?.foodPreferences?.map((item, index) => (
+                <ListItem key={index}>{item}</ListItem>
               ))}
             </List>
           </CardContent>

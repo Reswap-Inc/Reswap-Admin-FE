@@ -88,7 +88,7 @@ console.log(pagination,"paginationddddddddddddd")
                     backgroundColor: '#f5f5f5'
                   }
                 }}
-                onClick={() => navigate("/listing-details")}
+                onClick={() => navigate(`/reswap/web/admin/listing-details/${rowData?.listingId}`)}
               >
                 <TableCell sx={{ fontFamily: "Open Sans" }}>
                   {rowData?.listingId}
@@ -157,7 +157,7 @@ console.log(pagination,"paginationddddddddddddd")
         }}
       >
         <List>
-          <ListItem button onClick={() => navigate("/addform")}>
+          <ListItem button onClick={() => navigate("/reswap/web/admin/addform")}>
             <ListItemIcon>
               <EditIcon />
             </ListItemIcon>

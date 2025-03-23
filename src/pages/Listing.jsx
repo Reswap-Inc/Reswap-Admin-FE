@@ -25,7 +25,7 @@ import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 // import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import FilterListIcon from "@mui/icons-material/FilterList";
 
-import { getListingThunk, getSearchAlllisting} from "../network/ListingThunk";
+import { getListingThunk, getSearchAlllisting } from "../network/ListingThunk";
 
 
 
@@ -63,8 +63,8 @@ const Categories = () => {
     setPage(0);
     resetSearch();
   }, [tableset]);
-  
-  const { listings,pagination
+
+  const { listings, loading, error
   } = useSelector((state) => state.AllListingSlice);
 
   console.log(listings, "listinggg");
@@ -86,7 +86,7 @@ const Categories = () => {
 
     // listingId: "LIST100078",
     // itemType: "rent", // Categorical filter
-    // search: "*Furnished*", // Search filter
+    search: `*${searchParam}*`, // Search filter
     // postedBy: "RUSC0001", // Filter for listings posted by a specific user
 
     // sortField: "distance.distance", // Sorting field
@@ -97,16 +97,30 @@ const Categories = () => {
 
   useEffect(() => {
     dispatch(getSearchAlllisting(form));
-  }, [dispatch, page, rowsPerPage]); 
+  }, [dispatch, page, rowsPerPage, searchParam]);
 
-    const [selectedDate, setSelectedDate] = useState("");
-  
-    const handleDateChange = (event) => {
-      setSelectedDate(event.target.value);
-    };
+  const [selectedDate, setSelectedDate] = useState("");
+
+  const handleDateChange = (event) => {
+    setSelectedDate(event.target.value);
+  };
+
+  const handleSearch = (event) => {
+    const searchValue = event.target.value;
+    setSearchQuery(searchValue);
+
+    // const searchForm = {
+    //   ...form,
+    //   search: searchValue ? `*${searchValue}*` : "",
+    //   page: 0 // Reset to first page when searching
+    // };
+
+    // dispatch(getSearchAlllisting(searchForm));
+  };
+
   return (
     <div>
-        <Box
+      <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
@@ -123,102 +137,119 @@ const Categories = () => {
           }}
         >
           <ToggleButtonGroup
-      value={status}
-      exclusive
-      onChange={(_, newValue) => newValue && setStatus(newValue)}
-      sx={{
-        "& .MuiToggleButton-root": {
-          border: "none",
-          borderRadius: 0,
-          fontSize: 14,
-          fontWeight: "bold",
-          padding: "6px 16px",
-          color: "#000",
-          "&.Mui-selected": {
-            borderBottom: "3px solid black",
-            backgroundColor: "transparent",
-          },
-        },
-      }}
-    >
-      <ToggleButton value="active">Active</ToggleButton>
-      <ToggleButton value="archive">Archive</ToggleButton>
-    </ToggleButtonGroup>
+            value={status}
+            exclusive
+            onChange={(_, newValue) => newValue && setStatus(newValue)}
+            sx={{
+              "& .MuiToggleButton-root": {
+                border: "none",
+                borderRadius: 0,
+                fontSize: 14,
+                fontWeight: "bold",
+                padding: "6px 16px",
+                color: "#000",
+                "&.Mui-selected": {
+                  borderBottom: "3px solid black",
+                  backgroundColor: "transparent",
+                },
+              },
+            }}
+          >
+            <ToggleButton value="active">Active</ToggleButton>
+            <ToggleButton value="archive">Archive</ToggleButton>
+          </ToggleButtonGroup>
         </Box>
 
         {/* Right side - Add button */}
         <Box>
-          
+
         </Box>
       </Box>
       <Box
-      sx={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        py: "1rem",
-      }}
-    >
-      {/* Left side - Search bar */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <TextField
-          variant="outlined"
-          placeholder="Search..."
-          size="small"
-          sx={{ width: 200 ,borderRadius:50}}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Box>
-
-      {/* Right side - Filters and Add button */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        {/* Calendar Filter Icon */}
-        <TextField
-        type="date"
-        size="small"
-        value={selectedDate}
-        onChange={handleDateChange}
         sx={{
-          width: 200,
-          borderRadius: 50,
-          "& input": { cursor: "pointer" }, // Make input clickable
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          py: "1rem",
         }}
-        // InputProps={{
-        //   endAdornment: (
-        //     <InputAdornment position="end">
-        //       <IconButton>
-        //         <CalendarTodayIcon />
-        //       </IconButton>
-        //     </InputAdornment>
-        //   ),
-        // }}
-      />
-        {/* Additional Filter Icon */}
-        <IconButton>
-          <FilterListIcon />
-        </IconButton>
+      >
+        {/* Left side - Search bar */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <TextField
+            variant="outlined"
+            placeholder="Search..."
+            size="small"
+            value={searchParam}
+            onChange={handleSearch}
+            sx={{ width: 200, borderRadius: 50 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
 
-        {/* Add Button */}
-        <AddButton
-          onClick={() => navigate("/addform")}
-          bgColor="#5CBA47"
-          textColor="#1C1C1C"
-          startIcon={<AddIcon />}
-        >
-          <span>+</span> Add
-        </AddButton>
+        {/* Right side - Filters and Add button */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          {/* Calendar Filter Icon */}
+          {/* <TextField
+            type="date"
+            size="small"
+            value={selectedDate}
+            onChange={handleDateChange}
+            sx={{
+              width: 200,
+              borderRadius: 50,
+              "& input": { cursor: "pointer" }, // Make input clickable
+            }}
+          // InputProps={{
+          //   endAdornment: (
+          //     <InputAdornment position="end">
+          //       <IconButton>
+          //         <CalendarTodayIcon />
+          //       </IconButton>
+          //     </InputAdornment>
+          //   ),
+          // }}
+          /> */}
+          {/* Additional Filter Icon */}
+          <IconButton title="comming soon">
+            <FilterListIcon />
+          </IconButton>
+
+          {/* Add Button */}
+          <AddButton
+            onClick={() => navigate("/reswap/web/admin/addform")}
+            bgColor="#5CBA47"
+            textColor="#1C1C1C"
+            startIcon={<AddIcon />}
+          >
+            <span>+</span> Add
+          </AddButton>
+        </Box>
       </Box>
-    </Box>
-      <Ctable tableHead={tableHead}
-              rowData={listings?.body} pagination={listings?.pagination
-} setRowsPerPage={setRowsPerPage} setPage={setPage} />
-      {isLoading && <CircularProgress />}
+      {!loading ? (
+        <Ctable 
+          tableHead={tableHead}
+          rowData={listings?.body} 
+          pagination={listings?.pagination}
+          setRowsPerPage={setRowsPerPage} 
+          setPage={setPage} 
+        />
+      ) : (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+          <CircularProgress />
+        </Box>
+      )}
+      
+      {error && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'error.main', mt: 2 }}>
+          {error}
+        </Box>
+      )}
     </div>
   );
 };

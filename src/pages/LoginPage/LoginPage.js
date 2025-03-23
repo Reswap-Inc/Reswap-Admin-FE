@@ -73,7 +73,7 @@ const LoginPage = () => {
       //     sessionStorage.removeItem("rememberMePassword");
       //   }
 
-        navigate("/dashboard");
+        navigate("/reswap/web/admin/home");
 
       //   return null;
       // }
@@ -308,7 +308,7 @@ const LoginPage = () => {
           )}
 
           <button
-           onClick={()=>navigate("/customers")}
+           onClick={()=>navigate("/reswap/web/admin/home")}
             className={`w-full p-3 border-none rounded-md text-lg mb-5 font-bold relative flex items-center justify-center h-12 text-white ${
               isLoading ? "cursor-not-allowed" : "cursor-pointer"
             }`}
