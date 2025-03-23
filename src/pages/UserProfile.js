@@ -30,7 +30,7 @@ const UserProfile = () => {
     <Typography variant="h6" fontWeight="bold">
       {user.name} <Chip label={user.status} color="success" size="small" />
     </Typography>
-    <Button startIcon={<EditIcon />} size="small" onclick={()=>navigate("/adduser")}>
+    <Button startIcon={<EditIcon />} size="small" onclick={()=>navigate("/reswap/web/admin/adduser")}>
       Edit
     </Button>
   </Stack>

@@ -83,17 +83,17 @@ import {
 
 export const navItems = [
   {
-    path: "/listings", // main path for listing
+    path: "/reswap/web/admin/listings", // main path for listing
     icon: MdPeople,
     title: "Listing",
   },
   {
-    path: "/user", // path for user management
+    path: "/reswap/web/admin/user", // path for user management
     icon: MdPeople,
     title: "User Management",
   },
   {
-    path: "/admin-chat", // path for admin chat
+    path: "/reswap/web/admin/admin-chat", // path for admin chat
     icon: MdChat,
     title: "Admin Chat",
   },

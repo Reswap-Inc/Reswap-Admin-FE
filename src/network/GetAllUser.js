@@ -1,15 +1,10 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
-import {
-  ADD_LISTING,
-  cookies,
-  DELETE_LISTING,
-  EDIT_LISTING,
-  GET_LISTING,
-  SEARCH_SPACE_LISTING,
-} from "../redux/endpoint";
+import { ADD_LISTING, cookies, DELETE_LISTING, EDIT_LISTING, GET_ALL_USER, GET_LISTING, SEARCH_SPACE_LISTING } from "../redux/endpoint";
 
-
+/**
+ * Get Listings Thunk
+ */
 export const getListingThunk = createAsyncThunk(
   "listing/getListing",
   async (listingId) => {
@@ -24,6 +19,9 @@ export const getListingThunk = createAsyncThunk(
   }
 );
 
+/**
+ * Add Listing Thunk
+ */
 export const addListingThunk = createAsyncThunk(
   "listing/add",
   async (formData, { rejectWithValue }) => {
@@ -35,40 +33,39 @@ export const addListingThunk = createAsyncThunk(
     }
   }
 );
+// export const getSearchAlllisting = createAsyncThunk(
+//   "listing/getSearchAlllisting",
+//   async (formData, { rejectWithValue }) => {
+//     try {
+//       const response = await axios.post(SEARCH_SPACE_LISTING, formData);
+//       return response.data;
+//     } catch (error) {
+//       return rejectWithValue(handleAxiosError(error));
+//     }
+//   }
+// );
 
-export const addListingFunction = async ({ formData }) => {
-  try {
-    const response = await axios.post(ADD_LISTING, formData);
-    return response;
-  } catch (error) {
-    if (error.response) {
-      throw error; // ✅ Throw the error instead of returning it
-    } else {
-      throw new Error("Something went wrong. Please try again.");
-    }
-  }
-};
-
-export const getSearchAlllisting = createAsyncThunk(
-  "listing/getSearchAlllisting",
+export const getAllUserThunk = createAsyncThunk(
+  "User/getSearchAllUser",
   async (formData, { rejectWithValue }) => {
     try {
-      console.log("Fetching listings...");
+    //   console.log("Fetching listings...");
 
-      const response = await axios.post(SEARCH_SPACE_LISTING, formData, {
-        withCredentials: true,
+      const response = await axios.post(GET_ALL_USER, formData, {
+        withCredentials: true, 
+        // maxRedirects: 0, // Prevent Axios from auto-following redirects
         validateStatus: (status) => status < 400, // Accept all success and redirect statuses
       });
 
-      console.log("Response received:", response?.data, response.headers);
+      console.log("Response received:", response?.data);
 
       // Handle Redirects (302)
-      if (response.status == 302 && response.headers.location) {
+      if (response.status.code === 302 && response.headers.location) {
         const redirectUrl = response.headers.location;
         console.log("Redirecting to:", redirectUrl);
 
         const redirectResponse = await axios.get(redirectUrl, {
-          withCredentials: true,
+          withCredentials: true, // Ensure authentication cookies are included
         });
 
         console.log("Redirect Response Data:", redirectResponse?.data);
@@ -77,26 +74,15 @@ export const getSearchAlllisting = createAsyncThunk(
 
       return response.data;
     } catch (error) {
-      console.error("❌ Error fetching listings:", error);
+      console.error("Error fetching listings:", error);
 
-      // Extra logging to debug axios errors
-      if (axios.isAxiosError(error)) {
-        console.error("🛑 Axios error details:", {
-          status: error.response?.status,
-          data: error.response?.data,
-          headers: error.response?.headers,
-        });
-      } else {
-        console.error("❌ Unknown error occurred", error);
-      }
-
+      // Handle errors better
       return rejectWithValue(
         "An error occurred while fetching data."
       );
     }
   }
 );
-
 
 
 /**
@@ -134,10 +120,7 @@ export const deleteListingThunk = createAsyncThunk(
  */
 const handleAxiosError = (error) => {
   if (axios.isAxiosError(error)) {
-    console.error(
-      "Axios error:",
-      error.response?.data?.message || error.message
-    );
+    console.error("Axios error:", error.response?.data?.message || error.message);
     return error.response?.data?.message || "Something went wrong.";
   } else {
     return "An unexpected error occurred. Please try again.";

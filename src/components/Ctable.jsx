@@ -24,9 +24,16 @@ import ArchiveIcon from "@mui/icons-material/Archive";
 import BlockIcon from "@mui/icons-material/Block";
 import { useNavigate } from "react-router-dom";
 
-const Ctable = ({ tableHead, rowData, tableName, pagination, setPage, setRowsPerPage }) => {
+const Ctable = ({
+  tableHead,
+  rowData,
+  tableName,
+  pagination,
+  setPage,
+  setRowsPerPage,
+}) => {
   const [anchorEl, setAnchorEl] = useState(null);
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const handleOpen = (event) => {
     event.stopPropagation(); // Prevent row click event
     setAnchorEl(event.currentTarget);
@@ -35,8 +42,8 @@ const Ctable = ({ tableHead, rowData, tableName, pagination, setPage, setRowsPer
   const handleClose = () => {
     setAnchorEl(null);
   };
- 
-console.log(pagination,"paginationddddddddddddd")
+
+  console.log(pagination, "paginationddddddddddddd");
   // Handlers for pagination
   const handleChangePage = (event, newPage) => {
     setPage(newPage + 1); // Add 1 as the API expects 1-based pagination
@@ -52,24 +59,31 @@ console.log(pagination,"paginationddddddddddddd")
     if (!text) return "---";
     return text.length > maxLength ? (
       <Tooltip title={text}>
-        <Typography noWrap>
-          {text.substring(0, maxLength)}...
-        </Typography>
+        <Typography noWrap>{text.substring(0, maxLength)}...</Typography>
       </Tooltip>
-    ) : text;
+    ) : (
+      text
+    );
   };
 
-  console.log(rowData, "rowdataq")
+  console.log(rowData, "rowdataq");
   return (
     <Box>
       <TableContainer component={Paper} sx={{ background: "#fff" }}>
-        <Table sx={{ width: "100%", fontFamily: "Open Sans" }} aria-label="dynamic table">
+        <Table
+          sx={{ width: "100%", fontFamily: "Open Sans" }}
+          aria-label="dynamic table"
+        >
           <TableHead>
             <TableRow sx={{ bgcolor: "#737373" }}>
               {tableHead.map((header, index) => (
                 <TableCell
                   key={index}
-                  sx={{ bgcolor: "#EFFEF7", color: "#1A1F2D", fontFamily: "Open Sans" }}
+                  sx={{
+                    bgcolor: "#EFFEF7",
+                    color: "#1A1F2D",
+                    fontFamily: "Open Sans",
+                  }}
                 >
                   {header.name}
                 </TableCell>
@@ -80,15 +94,19 @@ console.log(pagination,"paginationddddddddddddd")
             {rowData?.map((rowData, index) => (
               <TableRow
                 key={rowData?.listingId || index}
-                sx={{ 
-                  backgroundColor: "#ffffff", 
-                  cursor: "pointer", 
+                sx={{
+                  backgroundColor: "#ffffff",
+                  cursor: "pointer",
                   fontFamily: "Open Sans",
-                  '&:hover': {
-                    backgroundColor: '#f5f5f5'
-                  }
+                  "&:hover": {
+                    backgroundColor: "#f5f5f5",
+                  },
                 }}
-                onClick={() => navigate("/listing-details")}
+                onClick={() =>
+                  navigate(
+                    `/reswap/web/admin/listings/listing-details/${rowData?.listingId}`
+                  )
+                }
               >
                 <TableCell sx={{ fontFamily: "Open Sans" }}>
                   {rowData?.listingId}
@@ -99,21 +117,16 @@ console.log(pagination,"paginationddddddddddddd")
                 <TableCell sx={{ fontFamily: "Open Sans", maxWidth: 200 }}>
                   {truncateText(rowData?.propertyName, 25)}
                 </TableCell>
-                <TableCell>
-                  {rowData?.unitType || "---"}
-                </TableCell>
+                <TableCell>{rowData?.unitType || "---"}</TableCell>
                 <TableCell sx={{ fontFamily: "Open Sans", maxWidth: 250 }}>
-                  {truncateText(`${rowData?.location?.address}, ${rowData?.location?.city}, ${rowData?.location?.state}, ${rowData?.location?.country}`, 40)}
+                  {truncateText(
+                    `${rowData?.location?.address}, ${rowData?.location?.city}, ${rowData?.location?.state}, ${rowData?.location?.country}`,
+                    40
+                  )}
                 </TableCell>
-                <TableCell>{rowData?.
-                  viewCount
-                }</TableCell>
-                <TableCell
-                  sx={{ color: rowData?.verified ? "green" : "red" }}
-
-                >
+                <TableCell>{rowData?.viewCount}</TableCell>
+                <TableCell sx={{ color: rowData?.verified ? "green" : "red" }}>
                   {rowData?.verified ? "Active" : "Inactive"}
-
                 </TableCell>
                 <TableCell
                   sx={{ color: rowData?.status == "active" ? "green" : "red" }}
@@ -125,7 +138,7 @@ console.log(pagination,"paginationddddddddddddd")
                   </IconButton>
                 </TableCell>
               </TableRow>
-            ))} 
+            ))}
           </TableBody>
         </Table>
         <TablePagination
@@ -136,7 +149,7 @@ console.log(pagination,"paginationddddddddddddd")
           page={(pagination?.currentPage || 1) - 1} // Subtract 1 as MUI pagination is 0-based
           onPageChange={handleChangePage}
           onRowsPerPageChange={handleChangeRowsPerPage}
-          labelDisplayedRows={({ from, to, count }) => 
+          labelDisplayedRows={({ from, to, count }) =>
             `${from}-${to} of ${count !== -1 ? count : `more than ${to}`}`
           }
         />
@@ -157,7 +170,10 @@ console.log(pagination,"paginationddddddddddddd")
         }}
       >
         <List>
-          <ListItem button onClick={() => navigate("/addform")}>
+          <ListItem
+            button
+            onClick={() => navigate("/reswap/web/admin/addform")}
+          >
             <ListItemIcon>
               <EditIcon />
             </ListItemIcon>

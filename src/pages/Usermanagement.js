@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -19,6 +19,8 @@ import {
   TextField,
   InputAdornment,
   TablePagination,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   MoreVert as MoreVertIcon,
@@ -29,65 +31,21 @@ import {
   Add as AddIcon,
 } from "@mui/icons-material";
 import AddButton from "../components/AddButton";
+import { useSelector } from "react-redux";
+import { useDispatch } from "react-redux";
+import { getAllUserThunk } from "../network/GetAllUser";
 
 
 const tableHead = ["Sub", "Family Name ", "Given Name", "Prefered User Name", "User Type", "Phone Number", "Action"];
 
-const categories = [
-  {
-    userNameId: "Mithun\nID: B06589",
-    role: "Admin",
-    mobileNumber: "+1 (455) 444-7206",
-    emailId: "mithun@usc.edu",
-    joiningDate: "Dec 23, 2023",
-    status: "Active",
-  },
-  {
-    userNameId: "James J. Scott\nID: 8D6590",
-    role: "Admin",
-    mobileNumber: "+1 (532) 564-1980",
-    emailId: "jamesscott@usc.edu",
-    joiningDate: "Dec 23, 2023",
-    status: "",
-  },
-  {
-    userNameId: "Mithun\nID: B06589",
-    role: "Admin",
-    mobileNumber: "+1 (455) 444-7206",
-    emailId: "mithun@usc.edu",
-    joiningDate: "Dec 23, 2023",
-    status: "Active",
-  },
-  {
-    userNameId: "James J. Scott\nID: 8D6590",
-    role: "Admin",
-    mobileNumber: "+1 (532) 564-1980",
-    emailId: "jamesscott@usc.edu",
-    joiningDate: "Dec 23, 2023",
-    status: "",
-  },
-  {
-    userNameId: "Mithun\nID: B06589",
-    role: "Admin",
-    mobileNumber: "+1 (455) 444-7206",
-    emailId: "mithun@usc.edu",
-    joiningDate: "Dec 23, 2023",
-    status: "Active",
-  },
-  {
-    userNameId: "James J. Scott\nID: 8D6590",
-    role: "Admin",
-    mobileNumber: "+1 (532) 564-1980",
-    emailId: "jamesscott@usc.edu",
-    joiningDate: "Dec 23, 2023",
-    status: "",
-  },
-];
+
 
 const UserManagement = () => {
   const navigate = useNavigate();
+  const dispatch=useDispatch();
   const [anchorEl, setAnchorEl] = useState(null);
-
+  const [page, setPage] = useState(0);
+    const [rowsPerPage, setRowsPerPage] = useState(5);
   const handleOpen = (event) => {
     setAnchorEl(event.currentTarget); // Store the clicked icon's position
   };
@@ -95,8 +53,7 @@ const UserManagement = () => {
   const handleClose = () => {
     setAnchorEl(null);
   };
-  const [page, setPage] = useState(0);
-    const [rowsPerPage, setRowsPerPage] = useState(5);
+
   
     // Handlers for pagination
     const handleChangePage = (event, newPage) => {
@@ -107,6 +64,19 @@ const UserManagement = () => {
       setRowsPerPage(parseInt(event.target.value, 10));
       setPage(0);
     };
+    const{ listings, loading, error
+    } = useSelector((state) => state.AllUserSlice);
+  
+    console.log(listings, "Users");
+  const pagination=listings?.pagination;
+    const form = {
+      page: page + 1, // Add +1 if your API expects 1-based page numbers
+      limit: rowsPerPage,
+    };
+  
+    useEffect(() => {
+      dispatch(getAllUserThunk(form));
+    }, [dispatch, page, rowsPerPage]);
 
   return (
     <Box p={2}>
@@ -129,51 +99,63 @@ const UserManagement = () => {
           }}
         />
 
-          <AddButton onClick={() => navigate("/adduser")} startIcon={<AddIcon />} bgColor="#5CBA47" textColor="#1c1c1c">
+          <AddButton onClick={() => navigate("/reswap/web/admin/adduser")} startIcon={<AddIcon />} bgColor="#5CBA47" textColor="#1c1c1c">
             + Add
           </AddButton>
         </Box>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ bgcolor: "#EFFEF7" }}>
-              {tableHead.map((header, index) => (
-                <TableCell key={index}>{header}</TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {categories.map((row, index) => (
-              <TableRow key={index} onClick={() => navigate("/user-profile")} style={{ cursor: "pointer" }}>
-                <TableCell>{row.userNameId}</TableCell>
-                <TableCell>{row.role}</TableCell>
-                <TableCell>{row.mobileNumber}</TableCell>
-                <TableCell>{row.emailId}</TableCell>
-                <TableCell>{row.joiningDate}</TableCell>
-                <TableCell>{row.status || "-"}</TableCell>
-                <TableCell onClick={(e) => e.stopPropagation()}>
-                  <Tooltip title="Actions">
-                    <IconButton onClick={handleOpen}>
-                      <MoreVertIcon />
-                    </IconButton>
-                  </Tooltip>
-                </TableCell>
+      {loading ? (
+        <Box display="flex" justifyContent="center" p={4}>
+          <CircularProgress />
+        </Box>
+      ) : error ? (
+        <Box display="flex" justifyContent="center" p={4}>
+          <Alert severity="error">
+            {error || 'An error occurred while fetching users'}
+          </Alert>
+        </Box>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: "#EFFEF7" }}>
+                {tableHead.map((header, index) => (
+                  <TableCell key={index}>{header}</TableCell>
+                ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        <TablePagination
-        rowsPerPageOptions={[5, 10, 25]}
-        component="div"
-        // count={rowData?.length || 0}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-      />
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {listings?.body?.map((row, index) => (
+                <TableRow key={index} onClick={() => navigate("/reswap/web/admin/user-profile")} style={{ cursor: "pointer" }}>
+                  <TableCell>{row?.sub}</TableCell>
+                  <TableCell>{row?.family_name}</TableCell>
+                  <TableCell>{row?.given_name}</TableCell>
+                  <TableCell>{row?.preferred_username}</TableCell>
+                  <TableCell>{!row?.isSuperAdmin?"User":"Admin" }</TableCell>
+                  <TableCell>{row?.phone_number || "-"}</TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Tooltip title="Actions">
+                      <IconButton onClick={handleOpen}>
+                        <MoreVertIcon />
+                      </IconButton>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <TablePagination
+          rowsPerPageOptions={[5, 10, 25]}
+          component="div"
+          count={pagination?.totalItems || 0}
+          rowsPerPage={rowsPerPage}
+          page={pagination?.currentPage || 0}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+        </TableContainer>
+      )}
 
       {/* Popover for MoreVert Actions */}
       <Popover
@@ -190,7 +172,7 @@ const UserManagement = () => {
         }}
       >
         <List>
-          <ListItem button onClick={() => navigate("/adduser")}>
+          <ListItem button onClick={() => navigate("/reswap/web/admin/adduser")}>
             <ListItemIcon>
               <EditIcon />
             </ListItemIcon>

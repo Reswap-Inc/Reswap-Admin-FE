@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, MenuItem, Typography } from "@mui/material";
+import { Menu, MenuItem, Typography, IconButton, Badge } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import MenuIcon from "@mui/icons-material/Menu";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import { userLogout } from "../network/Authapi";
 
 const Navbar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -31,13 +33,17 @@ const Navbar = () => {
     setIsMenuOpen(false);
   };
 
-  const handleLogout = () => {
-    setAnchorEl(null);
-    setIsMenuOpen(false);
-    // Clear the token from local storage
-    sessionStorage.removeItem("iptoken");
-    // Navigate to the login page
-    navigate("/login");
+  const handleLogout = async () => {
+    try {
+      await userLogout();
+      // Clear session storage
+      
+      // Redirect to login page
+      
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Optionally add user notification here
+    }
   };
 
   // Use useEffect to disable horizontal scroll when the menu is open
@@ -94,18 +100,32 @@ const Navbar = () => {
               cursor: "pointer",
               position: "relative",
             }}
-            onClick={handleProfileClick}
           >
-            <AccountCircleIcon
-              sx={{
-                fontSize: 40,
-                color: "gray",
-                cursor: "pointer",
-              }}
-            />
+            {/* Add Notification Icon */}
+            <IconButton
+              size="large"
+              aria-label="show notifications"
+              color="inherit"
+              sx={{ marginRight: 2 }}
+            >
+              <Badge badgeContent={4} color="error">
+                <NotificationsIcon sx={{ color: "gray" }} />
+              </Badge>
+            </IconButton>
+
+            <div onClick={handleProfileClick} style={{ display: 'flex', alignItems: 'center' }}>
             <Typography sx={{ color: "gray", marginLeft: 1 }}>
-              {userData?.username}
-            </Typography>
+                {userData?.username||"Admin"}
+              </Typography>
+              <AccountCircleIcon
+                sx={{
+                  fontSize: 40,
+                  color: "gray",
+                  cursor: "pointer",
+                }}
+              />
+             
+            </div>
 
             {isMenuOpen && (
               <Menu

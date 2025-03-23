@@ -1,9 +1,9 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
 
-import Categories from "./pages/Listing.jsx";
+import Listing from "./pages/Listing.jsx";
 import AddListing from "./pages/AddListing.js";
 import LoginPage from "./pages/LoginPage/LoginPage";
 import Layout from "./components/Layout";
@@ -24,14 +24,17 @@ const App = () => {
     <div>
       <BrowserRouter>
         <Routes>
-          {/* Login routes without Navbar */}
-          <Route path="/login" element={<LoginPage />} />
-          {/* <Route path="/forgot-password" element={<ForgotPasswordLinkPage />} />
-          <Route path="/forgot-password-link" element={<ResetLinkSentPage />} /> */}
+          <Route
+            path="/"
+            element={<Navigate to="/reswap/web/admin/home" replace />}
+          />
+
+          {/* Login route without Navbar */}
+          <Route path="/reswap/web/admin/login" element={<LoginPage />} />
 
           {/* Protected routes with Navbar */}
           <Route
-            path="/"
+            path="/reswap/web/admin/"
             element={
               <>
                 <Navbar />
@@ -40,23 +43,27 @@ const App = () => {
             }
           >
             <Route index element={<Navigate to="/login" replace />} />
-            <Route path="/listings" element={<ListingOutlet />}>
-              <Route index element={<Categories />} />{" "}
+            <Route path="listings" element={<ListingOutlet />}>
+              <Route index element={<Listing />} />{" "}
               {/* ✅ Default component for /listings */}
               <Route path="add-listing" element={<AddListing />} />{" "}
               {/* ✅ Relative path */}
-              <Route path="listing-details" element={<ListingDetails />} />{" "}
+              <Route
+                path="listing-details/:listingId"
+                element={<ListingDetails />}
+              />{" "}
               {/* ✅ Relative path */}
             </Route>
 
-            <Route path="/user" element={<Usermanagement />}>
+            {/* <Route path="/user" element={<Usermanagement />}>
               <Route path="adduser" element={<AddUser />} />{" "}
-              {/* ✅ Relative path */}
               <Route path="user-profile" element={<UserProfile />} />{" "}
-              {/* ✅ Relative path */}
-            </Route>
+            </Route> */}
 
-            <Route path="/admin-chat" element={<ChatApp />} />
+            <Route path="adduser" element={<AddUser />} />
+            <Route path="user" element={<Usermanagement />} />
+            <Route path="user-profile" element={<UserProfile />} />
+            <Route path="admin-chat" element={<ChatApp />} />
           </Route>
         </Routes>
       </BrowserRouter>

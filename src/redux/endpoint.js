@@ -11,6 +11,9 @@ export const RESET_PASSWORD_EMAIL = `${BASE_URL}/api/auth/${VERSION}/forgotPassw
 export const CHANGE_PASSWORD = `${BASE_URL}/api/auth/${VERSION}/resetPasswordUser`;
 export const WIP_SET_USERS = `${BASE_URL}/api/auth/${VERSION}/setUser`;
 export const LOGIN = `${BASE_URL}/api/auth/${VERSION}/login`;
+export const USER_REGISTER = `${BASE_URL}/api/auth/${VERSION}/register`;
+export const GET_ALL_USER = `${BASE_URL}/api/auth/${VERSION}/getAllUsers`;
+export const LOGOUT = `${BASE_URL}/api/auth/${VERSION}/logout?redirect_url=https://reswap.tmithun.com/login`;
 
 //General
 export const ROBOT_TXT = `${BASE_URL}/api/general/${VERSION}/robots.txt`;

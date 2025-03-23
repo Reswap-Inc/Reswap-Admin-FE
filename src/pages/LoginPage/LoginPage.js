@@ -72,7 +72,7 @@ const LoginPage = () => {
       //     sessionStorage.removeItem("rememberMePassword");
       //   }
 
-      navigate("/listings");
+      navigate("/reswap/web/admin/listings");
 
       //   return null;
       // }

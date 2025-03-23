@@ -40,7 +40,7 @@ const tableHead = [
   // { name: "Actions" },
 ];
 
-const Categories = () => {
+const Listing = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const [tableset, settable] = useState("categories");
@@ -63,7 +63,7 @@ const Categories = () => {
     resetSearch();
   }, [tableset]);
 
-  const { listings, pagination } = useSelector(
+  const { listings, loading, error } = useSelector(
     (state) => state.AllListingSlice
   );
 
@@ -86,7 +86,7 @@ const Categories = () => {
 
     // listingId: "LIST100078",
     // itemType: "rent", // Categorical filter
-    // search: "*Furnished*", // Search filter
+    search: `*${searchParam}*`, // Search filter
     // postedBy: "RUSC0001", // Filter for listings posted by a specific user
 
     // sortField: "distance.distance", // Sorting field
@@ -97,13 +97,27 @@ const Categories = () => {
 
   useEffect(() => {
     dispatch(getSearchAlllisting(form));
-  }, [dispatch, page, rowsPerPage]);
+  }, [dispatch, page, rowsPerPage, searchParam]);
 
   const [selectedDate, setSelectedDate] = useState("");
 
   const handleDateChange = (event) => {
     setSelectedDate(event.target.value);
   };
+
+  const handleSearch = (event) => {
+    const searchValue = event.target.value;
+    setSearchQuery(searchValue);
+
+    // const searchForm = {
+    //   ...form,
+    //   search: searchValue ? `*${searchValue}*` : "",
+    //   page: 0 // Reset to first page when searching
+    // };
+
+    // dispatch(getSearchAlllisting(searchForm));
+  };
+
   return (
     <div>
       <Box
@@ -142,7 +156,7 @@ const Categories = () => {
             }}
           >
             <ToggleButton value="active">Active</ToggleButton>
-            <ToggleButton value="archive">Archive</ToggleButton>
+            {/* <ToggleButton value="archive">Archive</ToggleButton> */}
           </ToggleButtonGroup>
         </Box>
 
@@ -163,6 +177,8 @@ const Categories = () => {
             variant="outlined"
             placeholder="Search..."
             size="small"
+            value={searchParam}
+            onChange={handleSearch}
             sx={{ width: 200, borderRadius: 50 }}
             InputProps={{
               startAdornment: (
@@ -177,7 +193,7 @@ const Categories = () => {
         {/* Right side - Filters and Add button */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
           {/* Calendar Filter Icon */}
-          <TextField
+          {/* <TextField
             type="date"
             size="small"
             value={selectedDate}
@@ -187,24 +203,24 @@ const Categories = () => {
               borderRadius: 50,
               "& input": { cursor: "pointer" }, // Make input clickable
             }}
-            // InputProps={{
-            //   endAdornment: (
-            //     <InputAdornment position="end">
-            //       <IconButton>
-            //         <CalendarTodayIcon />
-            //       </IconButton>
-            //     </InputAdornment>
-            //   ),
-            // }}
-          />
+          // InputProps={{
+          //   endAdornment: (
+          //     <InputAdornment position="end">
+          //       <IconButton>
+          //         <CalendarTodayIcon />
+          //       </IconButton>
+          //     </InputAdornment>
+          //   ),
+          // }}
+          /> */}
           {/* Additional Filter Icon */}
-          <IconButton>
+          <IconButton title="comming soon">
             <FilterListIcon />
           </IconButton>
 
           {/* Add Button */}
           <AddButton
-            onClick={() => navigate("/listings/add-listing")}
+            onClick={() => navigate("/reswap/web/admin/listings/add-listing")}
             bgColor="#5CBA47"
             textColor="#1C1C1C"
             startIcon={<AddIcon />}
@@ -213,16 +229,42 @@ const Categories = () => {
           </AddButton>
         </Box>
       </Box>
-      <Ctable
-        tableHead={tableHead}
-        rowData={listings?.body}
-        pagination={listings?.pagination}
-        setRowsPerPage={setRowsPerPage}
-        setPage={setPage}
-      />
-      {isLoading && <CircularProgress />}
+      {!loading ? (
+        <Ctable
+          tableHead={tableHead}
+          rowData={listings?.body}
+          pagination={listings?.pagination}
+          setRowsPerPage={setRowsPerPage}
+          setPage={setPage}
+        />
+      ) : (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "200px",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      )}
+
+      {error && (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            color: "error.main",
+            mt: 2,
+          }}
+        >
+          {error}
+        </Box>
+      )}
     </div>
   );
 };
 
-export default Categories;
+export default Listing;
