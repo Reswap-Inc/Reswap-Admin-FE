@@ -15,7 +15,8 @@ import {
   DialogContent,
   DialogTitle,
   CircularProgress,
-  TextField, InputAdornment
+  TextField,
+  InputAdornment,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 
@@ -25,9 +26,7 @@ import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 // import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import FilterListIcon from "@mui/icons-material/FilterList";
 
-import { getListingThunk, getSearchAlllisting} from "../network/ListingThunk";
-
-
+import { getListingThunk, getSearchAlllisting } from "../network/ListingThunk";
 
 const tableHead = [
   { name: "Listing ID" },
@@ -63,9 +62,10 @@ const Categories = () => {
     setPage(0);
     resetSearch();
   }, [tableset]);
-  
-  const { listings,pagination
-  } = useSelector((state) => state.AllListingSlice);
+
+  const { listings, pagination } = useSelector(
+    (state) => state.AllListingSlice
+  );
 
   console.log(listings, "listinggg");
 
@@ -97,16 +97,16 @@ const Categories = () => {
 
   useEffect(() => {
     dispatch(getSearchAlllisting(form));
-  }, [dispatch, page, rowsPerPage]); 
+  }, [dispatch, page, rowsPerPage]);
 
-    const [selectedDate, setSelectedDate] = useState("");
-  
-    const handleDateChange = (event) => {
-      setSelectedDate(event.target.value);
-    };
+  const [selectedDate, setSelectedDate] = useState("");
+
+  const handleDateChange = (event) => {
+    setSelectedDate(event.target.value);
+  };
   return (
     <div>
-        <Box
+      <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
@@ -123,101 +123,103 @@ const Categories = () => {
           }}
         >
           <ToggleButtonGroup
-      value={status}
-      exclusive
-      onChange={(_, newValue) => newValue && setStatus(newValue)}
-      sx={{
-        "& .MuiToggleButton-root": {
-          border: "none",
-          borderRadius: 0,
-          fontSize: 14,
-          fontWeight: "bold",
-          padding: "6px 16px",
-          color: "#000",
-          "&.Mui-selected": {
-            borderBottom: "3px solid black",
-            backgroundColor: "transparent",
-          },
-        },
-      }}
-    >
-      <ToggleButton value="active">Active</ToggleButton>
-      <ToggleButton value="archive">Archive</ToggleButton>
-    </ToggleButtonGroup>
+            value={status}
+            exclusive
+            onChange={(_, newValue) => newValue && setStatus(newValue)}
+            sx={{
+              "& .MuiToggleButton-root": {
+                border: "none",
+                borderRadius: 0,
+                fontSize: 14,
+                fontWeight: "bold",
+                padding: "6px 16px",
+                color: "#000",
+                "&.Mui-selected": {
+                  borderBottom: "3px solid black",
+                  backgroundColor: "transparent",
+                },
+              },
+            }}
+          >
+            <ToggleButton value="active">Active</ToggleButton>
+            <ToggleButton value="archive">Archive</ToggleButton>
+          </ToggleButtonGroup>
         </Box>
 
         {/* Right side - Add button */}
-        <Box>
-          
-        </Box>
+        <Box></Box>
       </Box>
       <Box
-      sx={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        py: "1rem",
-      }}
-    >
-      {/* Left side - Search bar */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <TextField
-          variant="outlined"
-          placeholder="Search..."
-          size="small"
-          sx={{ width: 200 ,borderRadius:50}}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
-      </Box>
-
-      {/* Right side - Filters and Add button */}
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        {/* Calendar Filter Icon */}
-        <TextField
-        type="date"
-        size="small"
-        value={selectedDate}
-        onChange={handleDateChange}
         sx={{
-          width: 200,
-          borderRadius: 50,
-          "& input": { cursor: "pointer" }, // Make input clickable
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          py: "1rem",
         }}
-        // InputProps={{
-        //   endAdornment: (
-        //     <InputAdornment position="end">
-        //       <IconButton>
-        //         <CalendarTodayIcon />
-        //       </IconButton>
-        //     </InputAdornment>
-        //   ),
-        // }}
-      />
-        {/* Additional Filter Icon */}
-        <IconButton>
-          <FilterListIcon />
-        </IconButton>
+      >
+        {/* Left side - Search bar */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <TextField
+            variant="outlined"
+            placeholder="Search..."
+            size="small"
+            sx={{ width: 200, borderRadius: 50 }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Box>
 
-        {/* Add Button */}
-        <AddButton
-          onClick={() => navigate("/addform")}
-          bgColor="#5CBA47"
-          textColor="#1C1C1C"
-          startIcon={<AddIcon />}
-        >
-          <span>+</span> Add
-        </AddButton>
+        {/* Right side - Filters and Add button */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+          {/* Calendar Filter Icon */}
+          <TextField
+            type="date"
+            size="small"
+            value={selectedDate}
+            onChange={handleDateChange}
+            sx={{
+              width: 200,
+              borderRadius: 50,
+              "& input": { cursor: "pointer" }, // Make input clickable
+            }}
+            // InputProps={{
+            //   endAdornment: (
+            //     <InputAdornment position="end">
+            //       <IconButton>
+            //         <CalendarTodayIcon />
+            //       </IconButton>
+            //     </InputAdornment>
+            //   ),
+            // }}
+          />
+          {/* Additional Filter Icon */}
+          <IconButton>
+            <FilterListIcon />
+          </IconButton>
+
+          {/* Add Button */}
+          <AddButton
+            onClick={() => navigate("/listings/add-listing")}
+            bgColor="#5CBA47"
+            textColor="#1C1C1C"
+            startIcon={<AddIcon />}
+          >
+            <span>+</span> Add
+          </AddButton>
+        </Box>
       </Box>
-    </Box>
-      <Ctable tableHead={tableHead}
-              rowData={listings?.body} pagination={listings?.pagination
-} setRowsPerPage={setRowsPerPage} setPage={setPage} />
+      <Ctable
+        tableHead={tableHead}
+        rowData={listings?.body}
+        pagination={listings?.pagination}
+        setRowsPerPage={setRowsPerPage}
+        setPage={setPage}
+      />
       {isLoading && <CircularProgress />}
     </div>
   );
