@@ -104,3 +104,16 @@ export const AddListingValidationSchema = Yup.object().shape({
     // )
     .optional(),
 });
+
+export const fetchNearByPlacesValidationSchema = Yup.object().shape({
+  address1: Yup.string().required("Address1 is required"),
+  address2: Yup.string().optional(),
+  city: Yup.string().required("City is required"),
+  state: Yup.string().required("State is required"),
+  zip: Yup.string()
+    .matches(/^\d{5}$/, "Invalid ZIP code")
+    .required("ZIP code is required"),
+  countryCode: Yup.string()
+    .length(2, "Country code must be 2 characters")
+    .required("Country code is required"),
+});

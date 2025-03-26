@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Box,
   Button,
@@ -17,6 +17,8 @@ import {
   Modal,
   Dialog,
   Grid2,
+  Tooltip,
+  OutlinedInput,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
@@ -24,10 +26,22 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import { AddPhotoAlternate as AddPhotoAlternateIcon } from "@mui/icons-material";
 import { useState } from "react";
-import { AddListingValidationSchema } from "../utils/validationSchemas";
-import { addListingFunction } from "../network/ListingThunk";
+import { useTheme } from "@mui/material/styles";
+import {
+  AddListingValidationSchema,
+  fetchNearByPlacesValidationSchema,
+} from "../utils/validationSchemas";
+import { getConfiguration, getLocationFromZip } from "../network/generalApi";
+import { getPlacesNearListing } from "../network/spaceShare";
 const { Country, State, City } = require("country-state-city");
 
+function getStyles(name, personName, theme) {
+  return {
+    fontWeight: personName.includes(name)
+      ? theme.typography.fontWeightMedium
+      : theme.typography.fontWeightRegular,
+  };
+}
 // Custom styled components
 const GradientBox = styled(Box)({
   background: "#ffffff",
@@ -58,17 +72,16 @@ const furnishingItems = [
   "Sofa",
 ];
 
-const PropertyType = [
-  "Apartment",
-  "Independent House/ Villa",
-  "Shared Room",
-  "Private Room with Shared Bathroom",
-  "Private Room with Private Bathroom",
+const ListingType = [
+  { id: 1, label: "Unit", value: "unit" },
+  { id: 2, label: "Room", value: "room" },
 ];
 
-const UnitType = ["1BHK", "2BHK", "3BHK", "4BHK"];
-
 const initialState = {
+  listingType: "unit",
+  propertyType: "",
+  unitType: "",
+  roomType: "",
   title: "",
   description: "",
   address1: "",
@@ -77,9 +90,8 @@ const initialState = {
   zip: "",
   countryCode: "us",
   rentAmount: "",
+
   depositAmount: "",
-  propertyType: "",
-  unitType: "",
   feesAmount: "",
   petsAllowed: [],
   petsPresent: [],
@@ -125,7 +137,20 @@ const initialState = {
   ],
 };
 
+const ITEM_HEIGHT = 48;
+const ITEM_PADDING_TOP = 8;
+
+const MenuProps = {
+  PaperProps: {
+    style: {
+      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
+      width: 250,
+    },
+  },
+};
+
 export default function AddListing() {
+  const theme = useTheme();
   const [formData, setFormData] = React.useState(initialState);
   const [furnitureImages, setFurnitureImages] = useState(Array(3).fill(null));
   const [unitImages, setUnitImages] = useState(Array(3).fill(null));
@@ -134,6 +159,116 @@ export default function AddListing() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const countries = Country.getAllCountries();
+
+  const CONFIGKEYS = [
+    "roommatePreferencesOptions",
+    "foodPreferencesOptions",
+    "popularPlaces",
+    "amenities",
+    "furniture",
+    "utilities",
+    "pets",
+    "propertyType",
+    "leaseType",
+    "roomType",
+  ];
+
+  const [propertyType, setPropertyType] = useState([]);
+  const [roommatePreferencesOptions, setRoommatePreferencesOptions] = useState(
+    []
+  );
+  const [foodPreferencesOptions, setFoodPreferencesOptions] = useState([]);
+  const [popularPlaces, setPopularPlaces] = useState([]);
+  const [amenities, setAmenities] = useState([]);
+  const [furniture, setFurniture] = useState([]);
+  const [utilities, setUtilities] = useState([]);
+  const [pets, setPets] = useState([]);
+  const [leaseType, setLeaseType] = useState([]);
+  const [roomType, setRoomType] = useState([]);
+  const [unitType, setUnitType] = useState([]);
+  const [isNearByPlacesFetching, setIsNearByPlacesFetching] = useState(false);
+  const [nearByPlaces, setNearByPlaces] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        //roommatePreferencesOptions
+        const roommatePreferencesOptions = await getConfiguration(
+          "roommatePreferencesOptions"
+        ); // Provide the required key
+        if (roommatePreferencesOptions?.body?.preferences) {
+          setRoommatePreferencesOptions(
+            roommatePreferencesOptions.body.preferences
+          );
+        }
+
+        //propertyType
+        const propertyType = await getConfiguration("propertyType"); // Provide the required key
+        if (propertyType?.body?.items) {
+          setPropertyType(propertyType.body.items);
+        }
+
+        //foodPreferencesOptions
+        const foodPreferencesOptions = await getConfiguration(
+          "foodPreferencesOptions"
+        ); // Provide the required key
+        if (foodPreferencesOptions?.body?.preferences) {
+          setFoodPreferencesOptions(foodPreferencesOptions.body.preferences);
+        }
+
+        //amenities
+        const amenities = await getConfiguration("amenities"); // Provide the required key
+        if (amenities?.body?.items) {
+          setAmenities(amenities.body.items);
+        }
+
+        //furniture
+        const furniture = await getConfiguration("furniture"); // Provide the required key
+        if (furniture?.body?.items) {
+          setFurniture(furniture.body.items);
+        }
+
+        //utilities
+        const utilities = await getConfiguration("utilities"); // Provide the required key
+        if (utilities?.body?.items) {
+          setUtilities(utilities.body.items);
+        }
+
+        //pets
+        const pets = await getConfiguration("pets"); // Provide the required key
+        if (pets?.body?.items) {
+          setPets(pets.body.items);
+        }
+
+        //roomType
+        const roomType = await getConfiguration("roomType"); // Provide the required key
+        if (roomType?.body?.items) {
+          setRoomType(roomType.body.items);
+        }
+
+        //unitType
+        const unitType = await getConfiguration("unitType"); // Provide the required key
+        if (roomType?.body?.items) {
+          setUnitType(unitType.body.items);
+        }
+      } catch (error) {
+        console.error("Failed to fetch roommate preferences:", error);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  console.log("roommatePreferencesOptions--->", roommatePreferencesOptions);
+  console.log("propertyType--->", propertyType);
+  console.log("foodPreferencesOptions--->", foodPreferencesOptions);
+  console.log("popularPlaces--->", popularPlaces);
+  console.log("amenities--->", amenities);
+  console.log("furniture--->", furniture);
+  console.log("utilities--->", utilities);
+  console.log("pets--->", pets);
+  console.log("roomType--->", roomType);
+
   const handleImageUploadfur = (event, index, type) => {
     const file = event.target.files[0];
     if (file) {
@@ -205,6 +340,15 @@ export default function AddListing() {
     }
   };
 
+  const handleChangeZip = (event) => {
+    const { name, value } = event.target;
+
+    // Allow only numbers using regex
+    if (/^\d*$/.test(value) && value.length <= 5) {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
   const states = formData.country
     ? State.getStatesOfCountry(formData.countryIsoCode)
     : [];
@@ -262,16 +406,35 @@ export default function AddListing() {
     }
   };
 
+  const handleListingTypeSelect = (type) => {
+    if (type === "unit") {
+      setFormData((prev) => ({ ...prev, roomType: "RSLT00005" }));
+    } else {
+      setFormData((prev) => ({ ...prev, roomType: "" }));
+    }
+    setFormData((prev) => ({
+      ...prev,
+      listingType: type,
+    }));
+  };
+
   const handlePropertyTypeSelect = (type) => {
     setFormData((prev) => ({
       ...prev,
       propertyType: type,
     }));
   };
+
   const handleUnitTypeSelect = (type) => {
     setFormData((prev) => ({
       ...prev,
       unitType: type,
+    }));
+  };
+  const handleRoomTypeSelect = (type) => {
+    setFormData((prev) => ({
+      ...prev,
+      roomType: type,
     }));
   };
 
@@ -370,6 +533,54 @@ export default function AddListing() {
     }
   };
 
+  useEffect(() => {
+    const fetchLocation = async () => {
+      if (formData.zip && formData.zip.length === 5) {
+        try {
+          const response = await getLocationFromZip(formData.zip);
+
+          if (response.body.found) {
+            setFormData((prev) => ({
+              ...prev,
+              city: response.body.city.name,
+              state: response.body.state.state_code,
+              country: response.body.state.iso2,
+            }));
+          }
+          console.log("Location response:", response);
+        } catch (error) {
+          console.log("ZIP error:", error);
+        }
+      }
+    };
+
+    fetchLocation();
+  }, [formData.zip]);
+
+  const fetchNearByPlaces = async () => {
+    try {
+      const addressFormData = {
+        zip: formData.zip,
+        country: formData.country,
+        state: formData.state,
+        city: formData.city,
+        address1: formData.address1,
+        address2: formData.address2,
+      };
+      await fetchNearByPlacesValidationSchema.validate(addressFormData, {
+        abortEarly: false,
+      });
+      const response = await getPlacesNearListing(addressFormData);
+      console.log("response nearByPlaces-->", response);
+    } catch (error) {
+      handleError(error); // ✅ Now this will properly handle 409
+    }
+  };
+
+  useEffect(() => {
+    fetchNearByPlaces();
+  }, [formData.address1]);
+
   return (
     <GradientBox>
       <h1 className="text-2xl font-semibold">Add Listing</h1>
@@ -378,33 +589,78 @@ export default function AddListing() {
           {/* Basic Details Section */}
           <Box>
             <Typography variant="h6" sx={{ color: "#10552F", mb: 3 }}>
-              Select Property Type
+              Listing Type
             </Typography>
             <Box display="flex" flexWrap="wrap" gap={1} mt={1} mb={2}>
-              {PropertyType?.map((type) => (
+              {ListingType?.map((type) => (
                 <Button
-                  key={type}
+                  key={type.id}
                   variant={
-                    formData.propertyType === type ? "contained" : "outlined"
+                    formData.listingType === type.value
+                      ? "contained"
+                      : "outlined"
                   }
-                  onClick={() => handlePropertyTypeSelect(type)}
+                  onClick={() => handleListingTypeSelect(type.value)}
                   sx={{
                     borderRadius: "20px",
                     textTransform: "none",
                     fontSize: "14px",
                     backgroundColor:
-                      formData.propertyType === type ? "#23BB67" : "white",
-                    color: formData.propertyType === type ? "white" : "#10552F",
-                    border: `1px solid ${formData.propertyType === type ? "#23BB67" : "#10552F"}`,
+                      formData.listingType === type.value ? "#23BB67" : "white",
+                    color:
+                      formData.listingType === type.value ? "white" : "#10552F",
+                    border: `1px solid ${formData.listingType === type.value ? "#23BB67" : "#10552F"}`,
                     "&:hover": {
                       backgroundColor:
-                        formData.propertyType === type
+                        formData.listingType === type.value
                           ? "#10552F"
                           : "rgba(35, 187, 103, 0.1)",
                     },
                   }}
                 >
-                  {type}
+                  {type.label}
+                </Button>
+              ))}
+            </Box>
+
+            {errors.listingType && (
+              <Typography sx={{ color: "error.main", mt: 1 }}>
+                {errors.listingType}
+              </Typography>
+            )}
+
+            <Typography variant="h6" sx={{ color: "#10552F", mb: 3 }}>
+              Select Property Type
+            </Typography>
+
+            <Box display="flex" flexWrap="wrap" gap={1} mt={1} mb={2}>
+              {propertyType?.map((type) => (
+                <Button
+                  key={type?.id}
+                  variant={
+                    formData.propertyType === type?.id
+                      ? "contained"
+                      : "outlined"
+                  }
+                  onClick={() => handlePropertyTypeSelect(type?.id)}
+                  sx={{
+                    borderRadius: "20px",
+                    textTransform: "none",
+                    fontSize: "14px",
+                    backgroundColor:
+                      formData.propertyType === type?.id ? "#23BB67" : "white",
+                    color:
+                      formData.propertyType === type?.id ? "white" : "#10552F",
+                    border: `1px solid ${formData.propertyType === type?.id ? "#23BB67" : "#10552F"}`,
+                    "&:hover": {
+                      backgroundColor:
+                        formData.propertyType === type?.id
+                          ? "#10552F"
+                          : "rgba(35, 187, 103, 0.1)",
+                    },
+                  }}
+                >
+                  {type.name}
                 </Button>
               ))}
             </Box>
@@ -419,30 +675,30 @@ export default function AddListing() {
               Select Unit Type
             </Typography>
             <Box display="flex" flexWrap="wrap" gap={1} mt={1} mb={2}>
-              {UnitType?.map((type) => (
+              {unitType?.map((type) => (
                 <Button
-                  key={type}
+                  key={type.id}
                   variant={
-                    formData.unitType === type ? "contained" : "outlined"
+                    formData.unitType === type.id ? "contained" : "outlined"
                   }
-                  onClick={() => handleUnitTypeSelect(type)}
+                  onClick={() => handleUnitTypeSelect(type.id)}
                   sx={{
                     borderRadius: "20px",
                     textTransform: "none",
                     fontSize: "14px",
                     backgroundColor:
-                      formData.unitType === type ? "#23BB67" : "white",
-                    color: formData.unitType === type ? "white" : "#10552F",
-                    border: `1px solid ${formData.unitType === type ? "#23BB67" : "#10552F"}`,
+                      formData.unitType === type.id ? "#23BB67" : "white",
+                    color: formData.unitType === type.id ? "white" : "#10552F",
+                    border: `1px solid ${formData.unitType === type.id ? "#23BB67" : "#10552F"}`,
                     "&:hover": {
                       backgroundColor:
-                        formData.unitType === type
+                        formData.unitType === type.id
                           ? "#10552F"
                           : "rgba(35, 187, 103, 0.1)",
                     },
                   }}
                 >
-                  {type}
+                  {type.name}
                 </Button>
               ))}
             </Box>
@@ -452,121 +708,86 @@ export default function AddListing() {
                 {errors.unitType}
               </Typography>
             )}
-            {/* Location Details */}
-            <Typography variant="h6" sx={{ color: "#10552F", mb: 1 }}>
-              Location Details
-            </Typography>
 
-            {errors.unitType && (
-              <Typography sx={{ color: "error.main", mt: 1 }}>
-                {errors.unitType}
-              </Typography>
+            {formData.listingType !== "unit" && (
+              <>
+                <Typography variant="h6" sx={{ color: "#10552F", mb: 3 }}>
+                  Select Room Type
+                </Typography>
+
+                <Box display="flex" flexWrap="wrap" gap={1} mt={1} mb={2}>
+                  {roomType?.map((type) => (
+                    <Button
+                      key={type.id}
+                      variant={
+                        formData.roomType === type.id ? "contained" : "outlined"
+                      }
+                      onClick={() => handleRoomTypeSelect(type.id)}
+                      sx={{
+                        borderRadius: "20px",
+                        textTransform: "none",
+                        fontSize: "14px",
+                        backgroundColor:
+                          formData.roomType === type.id ? "#23BB67" : "white",
+                        color:
+                          formData.roomType === type.id ? "white" : "#10552F",
+                        border: `1px solid ${formData.roomType === type.id ? "#23BB67" : "#10552F"}`,
+                        "&:hover": {
+                          backgroundColor:
+                            formData.roomType === type.id
+                              ? "#10552F"
+                              : "rgba(35, 187, 103, 0.1)",
+                        },
+                      }}
+                    >
+                      {type.name}
+                    </Button>
+                  ))}
+                </Box>
+
+                {errors.roomType && (
+                  <Typography sx={{ color: "error.main", mt: 1 }}>
+                    {errors.roomType}
+                  </Typography>
+                )}
+              </>
             )}
 
             <TextField
               fullWidth
               margin="normal"
-              label="Address Line 1"
-              name="address1"
-              value={formData.address1}
+              label="Title"
+              name="title"
+              value={formData.title}
               onChange={handleChange}
-              error={!!errors.address1}
-              helperText={errors.address1}
+              error={!!errors.title}
+              helperText={errors.title}
             />
+
             <TextField
               fullWidth
               margin="normal"
-              label="Address Line 2"
-              name="address2"
-              value={formData.address2}
+              label="Description"
+              name="description"
+              value={formData.description}
               onChange={handleChange}
+              error={!!errors.description}
+              helperText={errors.description}
             />
 
-            <Grid container alignItems="center" spacing={2} marginTop={1}>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Country</InputLabel>
-                  <Select
-                    name="country"
-                    value={formData.country}
-                    onChange={handleCountryChange}
-                    inputProps={{
-                      id: "country-select",
-                    }}
-                    sx={{
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#23BB67",
-                      },
-                      height: "56px",
-                    }}
-                  >
-                    {countries.map((country) => (
-                      <MenuItem key={country?.isoCode} value={country?.isoCode}>
-                        {country?.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>State</InputLabel>
-                  <Select
-                    name="state"
-                    value={formData.stateIsoCode || ""}
-                    disabled={!formData.countryIsoCode}
-                    onChange={handleStateChange}
-                    inputProps={{
-                      id: "country-select",
-                    }}
-                    sx={{
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#23BB67",
-                      },
-                      height: "56px",
-                    }}
-                  >
-                    {states.map((state) => (
-                      <MenuItem key={state.isoCode} value={state.isoCode}>
-                        {state?.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>City</InputLabel>
-                  <Select
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    inputProps={{
-                      id: "country-select",
-                    }}
-                    sx={{
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#23BB67",
-                      },
-                      height: "56px",
-                    }}
-                  >
-                    {cities.map((city) => (
-                      <MenuItem key={city?.name} value={city?.name}>
-                        {city?.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+            {/* Location Details */}
+            <Typography variant="h6" sx={{ color: "#10552F", mb: 1 }}>
+              Location Details
+            </Typography>
 
+            <Grid container alignItems="center" spacing={2} marginTop={1}>
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
                   label="Zip"
                   name="zip"
                   value={formData.zip}
-                  onChange={handleChange}
+                  onChange={handleChangeZip}
                   error={!!errors.zip}
                   helperText={errors.zip}
                   sx={{
@@ -576,26 +797,127 @@ export default function AddListing() {
                   }}
                 />
               </Grid>
+              <Grid item xs={12} md={6}>
+                <Tooltip
+                  title={
+                    formData.zip && formData.zip.length >= 5
+                      ? ""
+                      : "Please select zip"
+                  }
+                  disableInteractive
+                >
+                  <span>
+                    <TextField
+                      disabled
+                      fullWidth
+                      label="Country"
+                      name="country"
+                      value={formData.country}
+                      onChange={handleChange}
+                      error={!!errors.country}
+                      helperText={errors.country}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          height: "56px",
+                        },
+                      }}
+                    />
+                  </span>
+                </Tooltip>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Tooltip
+                  title={formData.zip ? "" : "Please select zip"}
+                  disableInteractive
+                >
+                  <span>
+                    <TextField
+                      disabled
+                      fullWidth
+                      label="State"
+                      name="state"
+                      value={formData.state}
+                      onChange={handleChange}
+                      error={!!errors.state}
+                      helperText={errors.state}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          height: "56px",
+                        },
+                      }}
+                    />
+                  </span>
+                </Tooltip>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Tooltip
+                  title={formData.zip ? "" : "Please select zip"}
+                  disableInteractive
+                >
+                  <span>
+                    <TextField
+                      disabled
+                      fullWidth
+                      label="City"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleChange}
+                      error={!!errors.city}
+                      helperText={errors.city}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          height: "56px",
+                        },
+                      }}
+                    />
+                  </span>
+                </Tooltip>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  label="Address Line 1"
+                  name="address1"
+                  value={formData.address1}
+                  onChange={handleChange}
+                  error={!!errors.address1}
+                  helperText={errors.address1}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  label="Address Line 2"
+                  name="address2"
+                  value={formData.address2}
+                  onChange={handleChange}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  label="Room Number"
+                  name="roomNumber"
+                  value={formData.roomNumber}
+                  onChange={handleChange}
+                />
+              </Grid>
             </Grid>
 
-            <TextField
-              fullWidth
-              margin="normal"
-              label="Room Number"
-              name="roomNumber"
-              value={formData.roomNumber}
-              onChange={handleChange}
-            />
-
             {/* Nearby Places */}
-            {/* <Box mt={2} p={2} bgcolor="#f0f7f2" borderRadius="8px">
+            <Box mt={2} p={2} bgcolor="#f0f7f2" borderRadius="8px">
               <Typography variant="subtitle1" fontWeight="bold">
                 Places near you
               </Typography>
               <Typography variant="body2">Mitchel Park - 1 km</Typography>
               <Typography variant="body2">Mark University - 2 km</Typography>
               <Typography variant="body2">Adams Hospital - 1 km</Typography>
-            </Box> */}
+            </Box>
+
             {/* <Box mt={2} p={2} bgcolor="#f0f7f2" borderRadius="8px">
               <Typography variant="subtitle1" fontWeight="bold">
                 Upload Your Lease Agreement
@@ -617,7 +939,7 @@ export default function AddListing() {
               Property Details
             </Typography>
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              {/* <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
                   <InputLabel>Roommate Preferences</InputLabel>
                   <Select
@@ -638,10 +960,34 @@ export default function AddListing() {
                     </MenuItem>
                     <MenuItem value="Any">Any</MenuItem>
                   </Select>
-                </FormControl>
-              </Grid>
 
-              <Grid item xs={12} md={6}>
+                  <InputLabel id="demo-multiple-name-label">
+                    Roommate Preferences
+                  </InputLabel>
+                  <Select
+                    labelId="demo-multiple-name-label"
+                    id="demo-multiple-name"
+                    multiple
+                    value={formData.roomatePreferences}
+                    onChange={handleChange}
+                    input={<OutlinedInput label="Name" />}
+                    MenuProps={MenuProps}
+                    name=""
+                  >
+                    {names.map((name) => (
+                      <MenuItem
+                        key={name}
+                        value={name}
+                        style={getStyles(name, personName, theme)}
+                      >
+                        {name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid> */}
+
+              {/* <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
                   <InputLabel>Food Preferences</InputLabel>
                   <Select
@@ -661,7 +1007,7 @@ export default function AddListing() {
                     <MenuItem value="Any">No Preference</MenuItem>
                   </Select>
                 </FormControl>
-              </Grid>
+              </Grid> */}
 
               <Grid item xs={12} md={6}>
                 <TextField
@@ -1031,16 +1377,6 @@ export default function AddListing() {
               error={!!errors.rentAmount}
               helperText={errors.rentAmount}
             />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  name="rentNegotiable"
-                  checked={formData.rentNegotiable}
-                  onChange={handleChange}
-                />
-              }
-              label="Price Negotiable"
-            />
 
             <TextField
               fullWidth
@@ -1052,16 +1388,6 @@ export default function AddListing() {
               type="number"
               error={!!errors.depositAmount}
               helperText={errors.depositAmount}
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  name="depositNegotiable"
-                  checked={formData.depositNegotiable}
-                  onChange={handleChange}
-                />
-              }
-              label="Price Negotiable"
             />
 
             <TextField

@@ -26,7 +26,7 @@ const App = () => {
         <Routes>
           <Route
             path="/"
-            element={<Navigate to="/reswap/web/admin/home" replace />}
+            element={<Navigate to="/reswap/web/admin/listings" replace />}
           />
 
           {/* Login route without Navbar */}

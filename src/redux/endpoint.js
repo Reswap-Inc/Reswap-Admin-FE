@@ -1,7 +1,8 @@
 const HOST_NAME = "reswap.tmithun.com";
 const PORT_NUMBER = "443";
 const VERSION = "v1.2";
-export const cookies="reswap.sid=s%3AGS__BaPud08HZTSCoTKxXhj6K2dqS-TA.RYyXg69nR0okmyrt6iODY28Lp%2FvItWxt%2Fd4DhAhvd8k; LIAM_state.RW001=QYQkfAzYnJdUK21kPRTmxKekYUheGABTgloQn3aXlhc; LIAM_state.RW001.legacy=QYQkfAzYnJdUK21kPRTmxKekYUheGABTgloQn3aXlhc"
+export const cookies =
+  "reswap.sid=s%3AGS__BaPud08HZTSCoTKxXhj6K2dqS-TA.RYyXg69nR0okmyrt6iODY28Lp%2FvItWxt%2Fd4DhAhvd8k; LIAM_state.RW001=QYQkfAzYnJdUK21kPRTmxKekYUheGABTgloQn3aXlhc; LIAM_state.RW001.legacy=QYQkfAzYnJdUK21kPRTmxKekYUheGABTgloQn3aXlhc";
 
 //Auth and user
 const BASE_URL = `https://${HOST_NAME}:${PORT_NUMBER}`;
@@ -23,6 +24,8 @@ export const PRIVACY_POLICY = `${BASE_URL}/api/general/${VERSION}/PrivacyPolicy`
 export const WIP_FAQ = `${BASE_URL}/api/general/{{VERSION}}/faqs?module=`; //NEED TO APPEND module NAME IN QUERY
 export const GET_ALL_COUNTRIES = `${BASE_URL}/api/general/${VERSION}/getCountries`;
 export const GET_COMMUNITIES = `${BASE_URL}/api/general/${VERSION}/getCommunities`;
+export const GET_CONFIGURATION = `${BASE_URL}/api/general/${VERSION}/getConfiguration?configKey`;
+export const GET_LOCATION_FROM_ZIP = `${BASE_URL}/api/general/${VERSION}/getLocationFromZip?zipCode`;
 
 //Fashion/Essentials
 
