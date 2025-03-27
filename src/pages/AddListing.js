@@ -16,12 +16,9 @@ import {
   IconButton,
   Modal,
   Dialog,
-  Grid2,
   Tooltip,
-  OutlinedInput,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import { AddPhotoAlternate as AddPhotoAlternateIcon } from "@mui/icons-material";
@@ -35,13 +32,6 @@ import { getConfiguration, getLocationFromZip } from "../network/generalApi";
 import { getPlacesNearListing } from "../network/spaceShare";
 const { Country, State, City } = require("country-state-city");
 
-function getStyles(name, personName, theme) {
-  return {
-    fontWeight: personName.includes(name)
-      ? theme.typography.fontWeightMedium
-      : theme.typography.fontWeightRegular,
-  };
-}
 // Custom styled components
 const GradientBox = styled(Box)({
   background: "#ffffff",
@@ -81,27 +71,51 @@ const initialState = {
   listingType: "unit",
   propertyType: "",
   unitType: "",
-  roomType: "",
+  roomType: "RSLT00005",
   title: "",
+  propertyName: "",
   description: "",
-  address1: "",
-  address2: "",
-  city: "",
-  zip: "",
-  countryCode: "us",
+  location: {
+    address: "",
+    address2: "",
+    city: "",
+    state: "",
+    country: "USA",
+    postalCode: "",
+    roomNumber: "",
+    coordinates: {
+      lat: null,
+      lng: null,
+    },
+  },
   rentAmount: "",
-
   depositAmount: "",
   feesAmount: "",
   petsAllowed: [],
   petsPresent: [],
-  roomatePreferences: [],
+  roommatePreferences: [],
   foodPreferences: [],
   configurationHouse: {
-    bedrooms: 1,
-    bathrooms: 1,
-    kitchen: 1,
-    balcony: 1,
+    bedrooms: {
+      number: 1,
+      required: true,
+    },
+    bathrooms: {
+      number: 1,
+      required: true,
+    },
+    kitchen: {
+      number: 1,
+      required: true,
+    },
+    balcony: {
+      number: 0,
+      required: false,
+    },
+    parking: {
+      number: 0,
+      required: false,
+    },
   },
   ammenitiesIncluded: {
     onsiteLaundry: false,
@@ -125,16 +139,39 @@ const initialState = {
   unitImages: [],
   isOwnedByPropertyManager: false,
   availability: {
-    startDate: "", // YYYYMMDD
-    endDate: "", // YYYYMMDD
+    startDate: "",
+    endDate: "",
     flexible: false,
   },
-  roomateDetails: [
-    {
-      countryCode: "+1",
-      phoneNumber: "",
+  roomateDetails: [],
+  saleType: "RSQT00002",
+  arePetsAllowed: false,
+  petsAllowed: [],
+  petsPresent: [],
+  amenities: [],
+  utilities: [],
+  comesWithFurniture: false,
+  furniture: [],
+  price: {
+    rent: {
+      amount: 0,
+      currency: "USD",
     },
-  ],
+    deposit: {
+      amount: 0,
+      currency: "USD",
+    },
+    fees: {
+      cleaning: {
+        amount: 0,
+        currency: "USD",
+      },
+    },
+    flexible: false,
+  },
+  currentResidents: [],
+  floorPlanImage: "",
+  videos: [],
 };
 
 const ITEM_HEIGHT = 48;
@@ -188,6 +225,10 @@ export default function AddListing() {
   const [unitType, setUnitType] = useState([]);
   const [isNearByPlacesFetching, setIsNearByPlacesFetching] = useState(false);
   const [nearByPlaces, setNearByPlaces] = useState([]);
+
+  const [customValueType, setCustomValueType] = useState("");
+  const [customValue, setCustomValue] = useState("");
+  const [openPetModel, setOpenPetModel] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -259,15 +300,15 @@ export default function AddListing() {
     fetchData();
   }, []);
 
-  console.log("roommatePreferencesOptions--->", roommatePreferencesOptions);
-  console.log("propertyType--->", propertyType);
-  console.log("foodPreferencesOptions--->", foodPreferencesOptions);
-  console.log("popularPlaces--->", popularPlaces);
-  console.log("amenities--->", amenities);
-  console.log("furniture--->", furniture);
-  console.log("utilities--->", utilities);
+  // console.log("roommatePreferencesOptions--->", roommatePreferencesOptions);
+  // console.log("propertyType--->", propertyType);
+  // console.log("foodPreferencesOptions--->", foodPreferencesOptions);
+  // console.log("popularPlaces--->", popularPlaces);
+  // console.log("amenities--->", amenities);
+  // console.log("furniture--->", furniture);
+  // console.log("utilities--->", utilities);
   console.log("pets--->", pets);
-  console.log("roomType--->", roomType);
+  // console.log("roomType--->", roomType);
 
   const handleImageUploadfur = (event, index, type) => {
     const file = event.target.files[0];
@@ -322,22 +363,25 @@ export default function AddListing() {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
+    console.log("Name:", name, "Value:", value);
     const nameParts = name.split(".");
 
-    if (nameParts.length === 1) {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [nameParts[0]]: {
-          ...prev[nameParts[0]],
-          [nameParts[1]]: value,
-        },
-      }));
-    }
+    setFormData((prev) => {
+      const newState = { ...prev };
+      let current = newState;
+
+      // Handle nested object updates
+      for (let i = 0; i < nameParts.length - 1; i++) {
+        if (!current[nameParts[i]]) {
+          current[nameParts[i]] = {};
+        }
+        current = current[nameParts[i]];
+      }
+
+      current[nameParts[nameParts.length - 1]] = value;
+      return newState;
+    });
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handleChangeZip = (event) => {
@@ -346,63 +390,6 @@ export default function AddListing() {
     // Allow only numbers using regex
     if (/^\d*$/.test(value) && value.length <= 5) {
       setFormData((prev) => ({ ...prev, [name]: value }));
-    }
-  };
-
-  const states = formData.country
-    ? State.getStatesOfCountry(formData.countryIsoCode)
-    : [];
-
-  const cities = formData.state
-    ? City.getCitiesOfState(formData.countryIsoCode, formData.stateIsoCode) || [
-        { name: formData.state },
-      ]
-    : [];
-
-  // If no cities are available, use the state name
-  if (!cities.length && formData.state) {
-    cities.push({ name: formData.state });
-  }
-
-  const handleCountryChange = (event) => {
-    const selectedCountryCode = event.target.value;
-    const selectedCountry = countries.find(
-      (country) => country.isoCode === selectedCountryCode
-    );
-
-    if (selectedCountry) {
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-
-        country: selectedCountry.name,
-        countryIsoCode: selectedCountry.isoCode,
-        state: "",
-      }));
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        country: "",
-        state: "",
-      }));
-    }
-  };
-
-  const handleStateChange = (event) => {
-    const selectedStateCode = event.target.value;
-    const selectedState = states.find(
-      (state) => state.isoCode === selectedStateCode
-    );
-
-    if (selectedState) {
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        state: selectedState.name,
-        stateIsoCode: selectedState.isoCode,
-      }));
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-
-        state: "",
-      }));
     }
   };
 
@@ -423,6 +410,8 @@ export default function AddListing() {
       ...prev,
       propertyType: type,
     }));
+
+    setErrors((prev) => ({ ...prev, propertyType: "" }));
   };
 
   const handleUnitTypeSelect = (type) => {
@@ -430,12 +419,14 @@ export default function AddListing() {
       ...prev,
       unitType: type,
     }));
+    setErrors((prev) => ({ ...prev, unitType: "" }));
   };
   const handleRoomTypeSelect = (type) => {
     setFormData((prev) => ({
       ...prev,
       roomType: type,
     }));
+    setErrors((prev) => ({ ...prev, roomType: "" }));
   };
 
   const handleFurnishingChange = (event) => {
@@ -443,6 +434,7 @@ export default function AddListing() {
       ...prev,
       furnishing: event.target.value,
     }));
+    setErrors((prev) => ({ ...prev, furnishing: "" }));
   };
 
   const handleClearAll = () => {
@@ -462,33 +454,10 @@ export default function AddListing() {
     }));
   };
 
-  const handleAmmenityChange = (ammenity) => {
-    setFormData((prev) => ({
-      ...prev,
-      ammenitiesIncluded: {
-        ...prev.ammenitiesIncluded,
-        [ammenity]: !prev.ammenitiesIncluded[ammenity],
-      },
-    }));
-  };
-
-  const handleDateChange = (field, value) => {
-    const formattedDate = value ? value.replace(/-/g, "") : "";
-
-    setFormData((prev) => ({
-      ...prev,
-      availability: {
-        ...prev.availability,
-        [field]: formattedDate,
-      },
-    }));
-  };
-
   const handleError = (error) => {
     if (error.name === "ValidationError") {
       handleValidationError(error);
     } else {
-      console.log("Unexpected Error:", error);
       setErrors({ apiError: error.message });
     }
   };
@@ -497,12 +466,9 @@ export default function AddListing() {
   const handleValidationError = (error) => {
     const validationErrors = {};
 
-    // Iterate over each validation error
     error.inner.forEach((err) => {
       validationErrors[err.path] = err.message;
     });
-
-    console.log("Validation Error", validationErrors);
 
     setErrors(validationErrors);
   };
@@ -510,23 +476,110 @@ export default function AddListing() {
   const handleSubmit = async () => {
     try {
       setIsLoading(true);
-      setErrors({}); // Clear previous errors
+      setErrors({});
 
-      console.log("Before ValidationsForm data is valid:", formData);
-      // Validate the form data
+      // Transform form data to match API format
+      const apiFormData = {
+        listingType: formData.listingType,
+        propertyType: formData.propertyType,
+        unitType: formData.unitType,
+        roomType: formData.roomType,
+        title: formData.title,
+        propertyName: formData.propertyName || null,
+        description: formData.description,
+        belongingsIncluded: formData.belongingsIncluded,
+        saleType: "RSQT00002",
+        arePetsAllowed: formData.petsAllowed === "Allowed",
+        petsAllowed: formData.petsAllowed || [],
+        petsPresent: formData.petsPresent || [],
+        amenities: formData.amenities || [],
+        utilities: formData.utilities || [],
+        configurationHouse: {
+          bedrooms: {
+            number: parseInt(formData.configurationHouse.bedrooms.number) || 0,
+            required: true,
+          },
+          bathrooms: {
+            number: parseInt(formData.configurationHouse.bathrooms.number) || 0,
+            required: true,
+          },
+          kitchen: {
+            number: parseInt(formData.configurationHouse.kitchen.number) || 1,
+            required: true,
+          },
+          balcony: {
+            number: parseInt(formData.configurationHouse.balcony.number) || 0,
+            required: false,
+          },
+        },
+        comesWithFurniture: formData.furnishing !== "Unfurnished",
+        furniture: Object.entries(formData.items || {}).map(([id, count]) => ({
+          id,
+          count,
+          common: false,
+          exclusiveAccess: false,
+        })),
+        location: {
+          address: formData.location.address,
+          address2: formData.location.address2,
+          city: formData.location.city,
+          state: formData.location.state,
+          country: formData.location.country,
+          postalCode: formData.location.postalCode,
+          roomNumber:
+            formData.listingType === "room" ? formData.location.roomNumber : "",
+          coordinates: {
+            lat: formData.location.coordinates.lat,
+            lng: formData.location.coordinates.lng,
+          },
+        },
+        price: {
+          rent: {
+            amount: parseFloat(formData.rentAmount) || 0,
+            currency: "USD",
+          },
+          deposit: {
+            amount: parseFloat(formData.depositAmount) || 0,
+            currency: "USD",
+          },
+          fees: {
+            cleaning: {
+              amount: parseFloat(formData.feesAmount) || 0,
+              currency: "USD",
+            },
+          },
+          flexible: formData.price.flexible,
+        },
+        availability: {
+          startDate: formData.availableFrom
+            ? new Date(formData.availableFrom).toISOString()
+            : "",
+          endDate: formData.availableTill
+            ? new Date(formData.availableTill).toISOString()
+            : "",
+          flexible: formData.availability.flexible,
+        },
+        currentResidents: formData.roomateDetails || [],
+        furnitureImages: formData.furnitureImages || [],
+        unitImages: formData.unitImages || [],
+      };
+
+      console.log("Data before validation:", apiFormData);
+
+      // Validate the transformed data
       const validatedData = await AddListingValidationSchema.validate(
-        formData,
+        apiFormData,
         {
           abortEarly: false,
         }
       );
 
-      // await addListingFunction({ formData });
+      console.log("Data ready for API:", validatedData);
 
-      console.log("After ValidationsForm data is valid:", validatedData);
-      // Proceed with form submission
+      // Make API call with validatedData
+      // await addListingFunction(validatedData);
     } catch (error) {
-      console.log("Validation errors:", error.inner);
+      console.log("Validation errors:", error);
       handleError(error);
     } finally {
       setIsLoading(false);
@@ -535,43 +588,64 @@ export default function AddListing() {
 
   useEffect(() => {
     const fetchLocation = async () => {
-      if (formData.zip && formData.zip.length === 5) {
+      if (
+        formData.location.postalCode &&
+        formData.location.postalCode.length === 5
+      ) {
         try {
-          const response = await getLocationFromZip(formData.zip);
-
+          const response = await getLocationFromZip(
+            formData.location.postalCode
+          );
+          console.log("location--->", response);
           if (response.body.found) {
             setFormData((prev) => ({
               ...prev,
-              city: response.body.city.name,
-              state: response.body.state.state_code,
-              country: response.body.state.iso2,
+              location: {
+                ...prev.location,
+                city: response.body.city.name,
+                state: response.body.state.state_code,
+                country: response.body.country.iso2,
+                coordinates: {
+                  lat: response.body.city.latitude,
+                  lng: response.body.city.longitude,
+                },
+              },
+            }));
+
+            setErrors((prev) => ({
+              ...prev,
+              ["location.city"]: "",
+              ["location.state"]: "",
+              ["location.country"]: "",
             }));
           }
-          console.log("Location response:", response);
         } catch (error) {
-          console.log("ZIP error:", error);
+          console.error("Error fetching location:", error);
         }
       }
     };
 
     fetchLocation();
-  }, [formData.zip]);
+  }, [formData.location.postalCode]);
 
   const fetchNearByPlaces = async () => {
     try {
       const addressFormData = {
-        zip: formData.zip,
-        country: formData.country,
-        state: formData.state,
-        city: formData.city,
-        address1: formData.address1,
-        address2: formData.address2,
+        zip: formData.location.postalCode,
+        country: formData.location.country,
+        state: formData.location.state,
+        city: formData.location.city,
+        address1: formData.location.address,
+        address2: formData.location.address2,
       };
+
+      console.log("addressFormData", addressFormData);
       await fetchNearByPlacesValidationSchema.validate(addressFormData, {
         abortEarly: false,
       });
       const response = await getPlacesNearListing(addressFormData);
-      console.log("response nearByPlaces-->", response);
+
+      console.log("fetchNearByPlaces response", response);
     } catch (error) {
       handleError(error); // ✅ Now this will properly handle 409
     }
@@ -579,7 +653,35 @@ export default function AddListing() {
 
   useEffect(() => {
     fetchNearByPlaces();
-  }, [formData.address1]);
+  }, [formData.location.address]);
+
+  const handleConfigurationChange = (type, value) => {
+    console.log("handleConfigurationChange", type, value);
+
+    setFormData((prev) => ({
+      ...prev,
+      configurationHouse: {
+        ...prev.configurationHouse,
+        [type]: {
+          ...prev.configurationHouse[type],
+          number: parseInt(value) || 0,
+        },
+      },
+    }));
+  };
+
+  const handleChangeAvailabilityFlexible = (event) => {
+    const { name, checked } = event.target;
+
+    console.log(" name, checked ", name, checked);
+    setFormData((prev) => ({
+      ...prev,
+      availability: {
+        ...prev.availability,
+        flexible: checked,
+      },
+    }));
+  };
 
   return (
     <GradientBox>
@@ -785,9 +887,9 @@ export default function AddListing() {
                 <TextField
                   fullWidth
                   label="Zip"
-                  name="zip"
-                  value={formData.zip}
-                  onChange={handleChangeZip}
+                  name="location.postalCode"
+                  value={formData.location.postalCode}
+                  onChange={handleChange}
                   error={!!errors.zip}
                   helperText={errors.zip}
                   sx={{
@@ -797,12 +899,11 @@ export default function AddListing() {
                   }}
                 />
               </Grid>
+
               <Grid item xs={12} md={6}>
                 <Tooltip
                   title={
-                    formData.zip && formData.zip.length >= 5
-                      ? ""
-                      : "Please select zip"
+                    formData.location.postalCode ? "" : "Please select zip"
                   }
                   disableInteractive
                 >
@@ -811,39 +912,18 @@ export default function AddListing() {
                       disabled
                       fullWidth
                       label="Country"
-                      name="country"
-                      value={formData.country}
+                      name="location.country"
+                      value={formData?.location?.country}
                       onChange={handleChange}
-                      error={!!errors.country}
-                      helperText={errors.country}
+                      error={!!errors?.["location.country"]}
+                      helperText={errors?.["location.country"]}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           height: "56px",
                         },
                       }}
-                    />
-                  </span>
-                </Tooltip>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Tooltip
-                  title={formData.zip ? "" : "Please select zip"}
-                  disableInteractive
-                >
-                  <span>
-                    <TextField
-                      disabled
-                      fullWidth
-                      label="State"
-                      name="state"
-                      value={formData.state}
-                      onChange={handleChange}
-                      error={!!errors.state}
-                      helperText={errors.state}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          height: "56px",
-                        },
+                      InputLabelProps={{
+                        shrink: !!formData.location.country,
                       }}
                     />
                   </span>
@@ -852,7 +932,39 @@ export default function AddListing() {
 
               <Grid item xs={12} md={6}>
                 <Tooltip
-                  title={formData.zip ? "" : "Please select zip"}
+                  title={
+                    formData.location.postalCode ? "" : "Please select zip"
+                  }
+                  disableInteractive
+                >
+                  <span>
+                    <TextField
+                      disabled
+                      fullWidth
+                      label="State"
+                      name="location.state"
+                      value={formData.location.state}
+                      onChange={handleChange}
+                      error={!!errors?.["location.state"]}
+                      helperText={errors?.["location.state"]}
+                      sx={{
+                        "& .MuiOutlinedInput-root": {
+                          height: "56px",
+                        },
+                      }}
+                      InputLabelProps={{
+                        shrink: !!formData.location.state,
+                      }}
+                    />
+                  </span>
+                </Tooltip>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <Tooltip
+                  title={
+                    formData.location.postalCode ? "" : "Please select zip"
+                  }
                   disableInteractive
                 >
                   <span>
@@ -860,15 +972,18 @@ export default function AddListing() {
                       disabled
                       fullWidth
                       label="City"
-                      name="city"
-                      value={formData.city}
+                      name="location.city"
+                      value={formData.location.city}
                       onChange={handleChange}
-                      error={!!errors.city}
-                      helperText={errors.city}
+                      error={!!errors?.["location.city"]}
+                      helperText={errors?.["location.city"]}
                       sx={{
                         "& .MuiOutlinedInput-root": {
                           height: "56px",
                         },
+                      }}
+                      InputLabelProps={{
+                        shrink: !!formData.location.city,
                       }}
                     />
                   </span>
@@ -879,11 +994,11 @@ export default function AddListing() {
                   fullWidth
                   margin="normal"
                   label="Address Line 1"
-                  name="address1"
-                  value={formData.address1}
+                  name="location.address"
+                  value={formData.location.address}
                   onChange={handleChange}
-                  error={!!errors.address1}
-                  helperText={errors.address1}
+                  error={!!errors?.["location.address"]}
+                  helperText={errors?.["location.address"]}
                 />
               </Grid>
               <Grid item xs={12} md={6}>
@@ -891,32 +1006,38 @@ export default function AddListing() {
                   fullWidth
                   margin="normal"
                   label="Address Line 2"
-                  name="address2"
-                  value={formData.address2}
+                  name="location.address2"
+                  value={formData.location.address2}
                   onChange={handleChange}
+                  error={!!errors?.["location.address2"]}
+                  helperText={errors?.["location.address2"]}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  margin="normal"
-                  label="Room Number"
-                  name="roomNumber"
-                  value={formData.roomNumber}
-                  onChange={handleChange}
-                />
-              </Grid>
+              {formData.listingType === "room" && (
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    margin="normal"
+                    label="Room Number"
+                    name="location.roomNumber"
+                    value={formData.location.roomNumber}
+                    onChange={handleChange}
+                    error={!!errors?.["location.roomNumber"]}
+                    helperText={errors?.["location.roomNumber"]}
+                  />
+                </Grid>
+              )}
             </Grid>
 
             {/* Nearby Places */}
-            <Box mt={2} p={2} bgcolor="#f0f7f2" borderRadius="8px">
+            {/* <Box mt={2} p={2} bgcolor="#f0f7f2" borderRadius="8px">
               <Typography variant="subtitle1" fontWeight="bold">
                 Places near you
               </Typography>
               <Typography variant="body2">Mitchel Park - 1 km</Typography>
               <Typography variant="body2">Mark University - 2 km</Typography>
               <Typography variant="body2">Adams Hospital - 1 km</Typography>
-            </Box>
+            </Box> */}
 
             {/* <Box mt={2} p={2} bgcolor="#f0f7f2" borderRadius="8px">
               <Typography variant="subtitle1" fontWeight="bold">
@@ -1042,22 +1163,19 @@ export default function AddListing() {
                   }}
                 />
               </Grid>
-              <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-                <Box p={3} display="flex" flexDirection="column" gap={2}>
-                  <TextField
-                    type="number"
-                    label="Enter Custom Value"
-                    onChange={handleChange}
-                    inputProps={{ min: 6 }}
-                  />
-                  <Button
-                    variant="contained"
-                    onClick={() => setOpenDialog(false)}
-                  >
-                    Confirm
-                  </Button>
-                </Box>
-              </Dialog>
+              <Grid item xs={12} md={6}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      name="availability.flexible"
+                      checked={formData.availability.flexible}
+                      onChange={handleChangeAvailabilityFlexible}
+                    />
+                  }
+                  label="Date Flexible"
+                />
+              </Grid>
+
               <Grid item xs={12}>
                 <Typography
                   variant="subtitle1"
@@ -1066,10 +1184,10 @@ export default function AddListing() {
                   Number of Bedrooms
                 </Typography>
                 <ToggleButtonGroup
-                  value={formData.bedrooms}
+                  value={formData.configurationHouse.bedrooms.number.toString()}
                   exclusive
                   onChange={(_, value) =>
-                    setFormData({ ...formData, bedrooms: value })
+                    handleConfigurationChange("bedrooms", value)
                   }
                   fullWidth
                   sx={{
@@ -1097,10 +1215,10 @@ export default function AddListing() {
                   Number of Bathrooms
                 </Typography>
                 <ToggleButtonGroup
-                  value={formData.bathrooms}
+                  value={formData.configurationHouse.bathrooms.number.toString()}
                   exclusive
                   onChange={(_, value) =>
-                    setFormData({ ...formData, bathrooms: value })
+                    handleConfigurationChange("bathrooms", value)
                   }
                   fullWidth
                   sx={{
@@ -1128,10 +1246,10 @@ export default function AddListing() {
                   Number of Balconies
                 </Typography>
                 <ToggleButtonGroup
-                  value={formData.balconies}
+                  value={formData.configurationHouse.balcony.number.toString()}
                   exclusive
                   onChange={(_, value) =>
-                    setFormData({ ...formData, balconies: value })
+                    handleConfigurationChange("balcony", value)
                   }
                   fullWidth
                   sx={{
@@ -1144,7 +1262,7 @@ export default function AddListing() {
                     },
                   }}
                 >
-                  {["0", "1", "2", "3", "4", "5+"]?.map((item) => (
+                  {["0", "1", "2", "3", "4", "5+"].map((item) => (
                     <ToggleButton key={item} value={item}>
                       {item}
                     </ToggleButton>
@@ -1159,10 +1277,10 @@ export default function AddListing() {
                   Car Parking
                 </Typography>
                 <ToggleButtonGroup
-                  value={formData.parking}
+                  value={formData.configurationHouse.parking.number.toString()}
                   exclusive
                   onChange={(_, value) =>
-                    setFormData({ ...formData, parking: value })
+                    handleConfigurationChange("parking", value)
                   }
                   fullWidth
                   sx={{
@@ -1175,7 +1293,7 @@ export default function AddListing() {
                     },
                   }}
                 >
-                  {["0", "1", "2", "3", "4", "5+"]?.map((item) => (
+                  {["0", "1", "2", "3", "4", "5+"].map((item) => (
                     <ToggleButton key={item} value={item}>
                       {item}
                     </ToggleButton>
@@ -1191,10 +1309,13 @@ export default function AddListing() {
                   Pets
                 </Typography>
                 <ToggleButtonGroup
-                  value={formData.petsAllowed}
+                  value={formData.arePetsAllowed ? "Allowed" : "Not Allowed"}
                   exclusive
                   onChange={(_, value) =>
-                    setFormData({ ...formData, petsAllowed: value })
+                    setFormData((prev) => ({
+                      ...prev,
+                      arePetsAllowed: value === "Allowed",
+                    }))
                   }
                   fullWidth
                   sx={{
@@ -1214,28 +1335,68 @@ export default function AddListing() {
                   <ToggleButton value="Allowed">Allowed</ToggleButton>
                 </ToggleButtonGroup>
               </Grid>
-
-              <Grid item xs={12}>
-                <Box borderRadius="8px" mt={2} p={2} bgcolor="#f0f7f2">
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Pets Include
-                  </Typography>
-                  <Button>Add More</Button>
-                </Box>
-              </Grid>
+              {formData?.arePetsAllowed && (
+                <Grid item xs={12}>
+                  <Box borderRadius="8px" mt={2} p={2} bgcolor="#f0f7f2">
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      Pets Include :-
+                    </Typography>
+                    {formData.petsAllowed &&
+                    Array.isArray(formData.petsAllowed) &&
+                    formData.petsAllowed.length > 0 ? (
+                      <Box sx={{ mt: 1, mb: 2 }}>
+                        {formData.petsAllowed.map((pet) => (
+                          <Typography
+                            key={pet.id}
+                            sx={{
+                              display: "inline-block",
+                              backgroundColor: "#23BB67",
+                              color: "white",
+                              padding: "4px 12px",
+                              borderRadius: "16px",
+                              margin: "4px",
+                              fontSize: "0.875rem",
+                            }}
+                          >
+                            {pet.name}
+                          </Typography>
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: "text.secondary",
+                          mt: 1,
+                          mb: 2,
+                        }}
+                      >
+                        No pets selected
+                      </Typography>
+                    )}
+                    <Button onClick={() => setOpenPetModel(true)}>
+                      Add More
+                    </Button>
+                  </Box>
+                </Grid>
+              )}
 
               <Grid item xs={12}>
                 <Typography
                   variant="subtitle1"
                   sx={{ mt: 2, mb: 1, color: "#10552F", fontWeight: 500 }}
                 >
-                  Select Property Type
+                  Furnishing Status
                 </Typography>
                 <ToggleButtonGroup
                   value={formData.furnishing}
                   exclusive
                   onChange={(_, value) =>
-                    setFormData({ ...formData, furnishing: value })
+                    setFormData(prev => ({
+                      ...prev,
+                      furnishing: value,
+                      comesWithFurniture: value !== "Unfurnished"
+                    }))
                   }
                   fullWidth
                   sx={{
@@ -1256,19 +1417,36 @@ export default function AddListing() {
                 </ToggleButtonGroup>
               </Grid>
 
-              <Grid item xs={12}>
-                <Box mt={2} p={2} bgcolor="#f0f7f2" borderRadius="8px">
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Furniture Includes
-                  </Typography>
-                  <Button
-                    onClick={() => setOpenFurnishingModal((prev) => !prev)}
-                  >
-                    Add More
-                  </Button>
-                  {furnishingItems}
-                </Box>
-              </Grid>
+              {formData.furnishing && formData.furnishing !== "Unfurnished" && (
+                <Grid item xs={12}>
+                  <Box mt={2} p={2} bgcolor="#f0f7f2" borderRadius="8px">
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      Furniture Includes
+                    </Typography>
+                    {Object.entries(formData.items || {}).length > 0 ? (
+                      <Box sx={{ mt: 1 }}>
+                        {Object.entries(formData.items).map(([item, count]) => (
+                          count > 0 && (
+                            <Typography key={item} variant="body2">
+                              • {item}: {count}
+                            </Typography>
+                          )
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        No furniture items selected
+                      </Typography>
+                    )}
+                    <Button
+                      onClick={() => setOpenFurnishingModal(true)}
+                      sx={{ mt: 2 }}
+                    >
+                      Add/Edit Furniture
+                    </Button>
+                  </Box>
+                </Grid>
+              )}
             </Grid>
             <Box>
               <Typography variant="h6" sx={{ color: "#10552F", mb: 2 }}>
@@ -1417,9 +1595,17 @@ export default function AddListing() {
             <FormControlLabel
               control={
                 <Checkbox
-                  name="transferNegotiable"
-                  checked={formData.transferNegotiable}
-                  onChange={handleChange}
+                  name="price.flexible"
+                  checked={formData.price.flexible}
+                  onChange={(event) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      price: {
+                        ...prev.price,
+                        flexible: event.target.checked,
+                      },
+                    }));
+                  }}
                 />
               }
               label="Price Negotiable"
@@ -1699,6 +1885,156 @@ export default function AddListing() {
                   </Grid>
                 ))}
               </Box>
+            </Box>
+          </Modal>
+        )}
+
+        {openPetModel && (
+          <Modal open={openPetModel} onClose={() => setOpenPetModel(false)}>
+            <Box
+              sx={{
+                position: "absolute",
+                maxWidth: 600,
+                width: "90%",
+                maxHeight: "80vh",
+                overflowY: "auto",
+                margin: "auto",
+                mt: 5,
+                p: 4,
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                backgroundColor: "#ffffff",
+                borderRadius: 2,
+                boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 3,
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  sx={{ color: "#10552F", fontWeight: 600 }}
+                >
+                  Add Pets
+                </Typography>
+                <Button
+                  onClick={() => setOpenPetModel(false)}
+                  sx={{
+                    minWidth: "32px",
+                    fontSize: "18px",
+                    color: "red",
+                  }}
+                >
+                  ✖
+                </Button>
+              </Box>
+
+              {/* Available Pets Section */}
+              <Box sx={{ mb: 4 }}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{ mb: 2, color: "#10552F" }}
+                >
+                  Available Pets
+                </Typography>
+                <Box sx={{ backgroundColor: "#f8f9fa", borderRadius: 2, p: 2 }}>
+                  {pets?.map((pet) => (
+                    <Grid
+                      container
+                      key={pet.id}
+                      alignItems="center"
+                      justifyContent="space-between"
+                      sx={{
+                        py: 1.5,
+                        borderBottom: "1px solid #e0e0e0",
+                        "&:last-child": { borderBottom: "none" },
+                      }}
+                    >
+                      <Typography sx={{ color: "#333", fontWeight: 500 }}>
+                        {pet.name}
+                      </Typography>
+                      <Button
+                        onClick={() => {
+                          setFormData((prev) => ({
+                            ...prev,
+                            petsAllowed: [...prev.petsAllowed, pet],
+                          }));
+                        }}
+                        disabled={formData.petsAllowed.some(
+                          (p) => p.id === pet.id
+                        )}
+                        sx={{
+                          color: "#23BB67",
+                          minWidth: "40px",
+                          "&:hover": {
+                            backgroundColor: "rgba(35, 187, 103, 0.1)",
+                          },
+                        }}
+                      >
+                        <AddIcon />
+                      </Button>
+                    </Grid>
+                  ))}
+                </Box>
+              </Box>
+
+              {/* Selected Pets Section */}
+              {formData.petsAllowed.length > 0 && (
+                <Box>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ mb: 2, color: "#10552F" }}
+                  >
+                    Selected Pets
+                  </Typography>
+                  <Box
+                    sx={{ backgroundColor: "#f8f9fa", borderRadius: 2, p: 2 }}
+                  >
+                    {formData.petsAllowed.map((pet) => (
+                      <Grid
+                        container
+                        key={pet.id}
+                        alignItems="center"
+                        justifyContent="space-between"
+                        sx={{
+                          py: 1.5,
+                          borderBottom: "1px solid #e0e0e0",
+                          "&:last-child": { borderBottom: "none" },
+                        }}
+                      >
+                        <Typography sx={{ color: "#333", fontWeight: 500 }}>
+                          {pet.name}
+                        </Typography>
+                        <Button
+                          onClick={() => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              petsAllowed: prev.petsAllowed.filter(
+                                (p) => p.id !== pet.id
+                              ),
+                            }));
+                          }}
+                          sx={{
+                            color: "red",
+                            minWidth: "40px",
+                            "&:hover": {
+                              backgroundColor: "rgba(255, 0, 0, 0.1)",
+                            },
+                          }}
+                        >
+                          <RemoveIcon />
+                        </Button>
+                      </Grid>
+                    ))}
+                  </Box>
+                </Box>
+              )}
             </Box>
           </Modal>
         )}

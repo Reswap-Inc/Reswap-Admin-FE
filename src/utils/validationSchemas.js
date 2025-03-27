@@ -3,18 +3,23 @@ import * as Yup from "yup";
 export const AddListingValidationSchema = Yup.object().shape({
   title: Yup.string().required("Title is required"),
   description: Yup.string().required("Description is required"),
-  address1: Yup.string().required("Address1 is required"),
-  address2: Yup.string().optional(),
-  city: Yup.string().required("City is required"),
-  zip: Yup.string()
-    .matches(/^\d{5}$/, "Invalid ZIP code")
-    .required("ZIP code is required"),
-  countryCode: Yup.string()
-    .length(2, "Country code must be 2 characters")
-    .required("Country code is required"),
-  rentAmount: Yup.number()
-    .typeError("Rent amount must be a number")
-    .positive("Rent amount must be positive")
+  location: Yup.object().shape({
+    address: Yup.string().required("Address is required"),
+    address2: Yup.string(),
+    city: Yup.string().required("City is required"),
+    state: Yup.string().required("State is required"),
+    country: Yup.string().required("Country is required"),
+    postalCode: Yup.string()
+      .matches(/^\d{5}$/, "Invalid ZIP code")
+      .required("ZIP code is required"),
+    roomNumber: Yup.string(),
+    coordinates: Yup.object().shape({
+      lat: Yup.number().nullable(),
+      lng: Yup.number().nullable()
+    })
+  }),
+  rentAmount: Yup.string()
+    .matches(/^\d+$/, "Must be a valid number")
     .required("Rent amount is required"),
   depositAmount: Yup.number()
     .typeError("Deposit amount must be a number")
@@ -49,10 +54,10 @@ export const AddListingValidationSchema = Yup.object().shape({
       .required("Number of balconies is required"),
   }),
   ammenitiesIncluded: Yup.object().shape({
-    onsiteLaundry: Yup.boolean().required(),
-    attachedBalcony: Yup.boolean().required(),
-    water: Yup.boolean().required(),
-    sweage: Yup.boolean().required(),
+    onsiteLaundry: Yup.boolean().required("Please specify if onsite laundry is available"),
+    attachedBalcony: Yup.boolean().required("Please specify if attached balcony is available"),
+    water: Yup.boolean().required("Please specify if water is included"),
+    sewage: Yup.boolean().required("Please specify if sewage is included"),
     trash: Yup.boolean().required(),
     electricity: Yup.boolean().required(),
     wifi: Yup.boolean().required(),
@@ -76,33 +81,46 @@ export const AddListingValidationSchema = Yup.object().shape({
     }),
   }),
   furnitureImages: Yup.array()
-    // .of(Yup.string().matches(/^<BASE64_image>$/, "Invalid image format"))
+    .of(
+      Yup.mixed()
+        .test("fileSize", "File too large", (value) => !value || value.size <= 5000000)
+        .test("fileType", "Unsupported file type", (value) => 
+          !value || ["image/jpeg", "image/png", "image/webp"].includes(value.type)
+        )
+    )
     .optional(),
   unitImages: Yup.array()
-    // .of(Yup.string().matches(/^<BASE64_image>$/, "Invalid image format"))
+    .of(
+      Yup.mixed()
+        .test("fileSize", "File too large", (value) => !value || value.size <= 5000000)
+        .test("fileType", "Unsupported file type", (value) => 
+          !value || ["image/jpeg", "image/png", "image/webp"].includes(value.type)
+        )
+    )
     .optional(),
   isOwnedByPropertyManager: Yup.boolean().oneOf([false]),
   availability: Yup.object().shape({
-    startDate: Yup.string()
-      //   .matches(/^\d{8}$/, "Start date must be in YYYYMMDD format")
-      .required("Start date is required"),
-    endDate: Yup.string()
-      //   .matches(/^\d{8}$/, "End date must be in YYYYMMDD format")
-      .required("End date is required"),
-    flexible: Yup.boolean().required(),
+    startDate: Yup.date()
+      .required("Start date is required")
+      .min(new Date(), "Start date cannot be in the past"),
+    endDate: Yup.date()
+      .required("End date is required")
+      .min(Yup.ref('startDate'), "End date must be after start date"),
+    flexible: Yup.boolean().required("Please specify if dates are flexible"),
   }),
-  roomateDetails: Yup.array()
-    // .of(
-    //   Yup.object().shape({
-    //     countryCode: Yup.string()
-    //       .matches(/^\+\d{1,3}$/, "Invalid country code")
-    //       .required("Country code is required"),
-    //     phoneNumber: Yup.string()
-    //       .matches(/^\d{7,15}$/, "Invalid phone number")
-    //       .required("Phone number is required"),
-    //   })
-    // )
-    .optional(),
+  roomateDetails: Yup.array().of(
+    Yup.object().shape({
+      countryCode: Yup.string()
+        .matches(/^\+\d{1,3}$/, "Invalid country code")
+        .required("Country code is required"),
+      phoneNumber: Yup.string()
+        .matches(/^\d{7,15}$/, "Invalid phone number")
+        .required("Phone number is required"),
+      email: Yup.string()
+        .email("Invalid email address")
+        .required("Email is required"),
+    })
+  ).optional(),
 });
 
 export const fetchNearByPlacesValidationSchema = Yup.object().shape({
