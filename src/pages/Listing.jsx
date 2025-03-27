@@ -236,6 +236,7 @@ const Listing = () => {
           pagination={listings?.pagination}
           setRowsPerPage={setRowsPerPage}
           setPage={setPage}
+          fordispatch={setSearchQuery}
         />
       ) : (
         <Box

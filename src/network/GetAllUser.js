@@ -1,6 +1,6 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
-import { ADD_LISTING, cookies, DELETE_LISTING, EDIT_LISTING, GET_ALL_USER, GET_LISTING, SEARCH_SPACE_LISTING } from "../redux/endpoint";
+import { ADD_LISTING, BAN_USER, cookies, DELETE_LISTING, EDIT_LISTING, GET_ALL_USER, GET_LISTING, SEARCH_SPACE_LISTING } from "../redux/endpoint";
 
 /**
  * Get Listings Thunk
@@ -22,6 +22,17 @@ export const getListingThunk = createAsyncThunk(
 /**
  * Add Listing Thunk
  */
+export const banUser = createAsyncThunk(
+  "ban/addban",
+  async (formData, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(BAN_USER, formData);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(handleAxiosError(error));
+    }
+  }
+);
 export const addListingThunk = createAsyncThunk(
   "listing/add",
   async (formData, { rejectWithValue }) => {
