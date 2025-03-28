@@ -6,8 +6,10 @@ import {
   DELETE_LISTING,
   EDIT_LISTING,
   GET_LISTING,
+  LISTING_APPROVE,
   SEARCH_SPACE_LISTING,
 } from "../redux/endpoint";
+import { toast } from "react-toastify";
 
 
 export const getListingThunk = createAsyncThunk(
@@ -111,6 +113,42 @@ export const getSearchAlllisting = createAsyncThunk(
       return rejectWithValue(
         "An error occurred while fetching data."
       );
+    }
+  }
+);
+export const approveListing = createAsyncThunk(
+  "listingapprove/approveAlllisting",
+  async (formData, { rejectWithValue }) => {
+    try {
+      console.log("Fetching listings...");
+
+      const response = await axios.post( LISTING_APPROVE, formData, {
+        withCredentials: true,
+        validateStatus: (status) => status < 400, // Accept all success and redirect statuses
+      });
+
+      console.log("Response received:", response?.data, response.headers);
+
+      // Handle Redirects (302)
+      if (response.status == 302 && response.headers.location) {
+        const redirectUrl = response.headers.location;
+        console.log("Redirecting to:", redirectUrl);
+
+        const redirectResponse = await axios.get(redirectUrl, {
+          withCredentials: true,
+        });
+
+        console.log("Redirect Response Data:", redirectResponse?.data);
+        return redirectResponse.data;
+      }
+
+      return response.data;
+    } catch (error) {
+      console.error("❌ Error fetching listings:", error);
+return error
+      // Extra logging to debug axios errors
+     
+     
     }
   }
 );

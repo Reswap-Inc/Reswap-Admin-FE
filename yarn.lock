@@ -8807,6 +8807,7 @@ makeerror@1.0.12:
     "@types/react" "^18.3.12"
     "@types/react-dom" "^18.3.1"
     axios "^1.8.4"
+    country-state-city "^3.2.1"
     crypto-js "^4.2.0"
     date-fns "^4.1.0"
     draft-js "^0.11.7"

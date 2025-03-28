@@ -14,6 +14,7 @@ export const WIP_SET_USERS = `${BASE_URL}/api/auth/${VERSION}/setUser`;
 export const LOGIN = `${BASE_URL}/api/auth/${VERSION}/login`;
 export const USER_REGISTER = `${BASE_URL}/api/auth/${VERSION}/register`;
 export const GET_ALL_USER = `${BASE_URL}/api/auth/${VERSION}/getAllUsers`;
+export const BAN_USER =`${BASE_URL}/api/auth/${VERSION}/banUser`;
 export const LOGOUT = `${BASE_URL}/api/auth/${VERSION}/logout?redirect_url=https://reswap.tmithun.com/login`;
 
 //General
@@ -39,5 +40,6 @@ export const GET_PLACE_NEAR_LISTING = `${BASE_URL}/api/space/${VERSION}/getPlace
 export const APPROVE_REJECT = `${BASE_URL}/api/space/${VERSION}/approveListing`;
 export const GET_FOOD_PREFERENCE = `${BASE_URL}/api/space/${VERSION}//getRoommatePreferencesOptions`;
 export const SEARCH_SPACE_LISTING = `${BASE_URL}/api/space/${VERSION}/searchSpaceListings`;
+export const LISTING_APPROVE = `${BASE_URL}/api/space/${VERSION}/approveListing`;
 // export const GET_FOOD_PREFERENCE = `${BASE_URL}/api/general/${VERSION}/getCountries`;
 //RideShare
