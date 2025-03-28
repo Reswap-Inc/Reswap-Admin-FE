@@ -17,6 +17,10 @@ import {
   Modal,
   Dialog,
   Tooltip,
+  OutlinedInput,
+  ListItemText,
+  FormHelperText,
+  FormGroup,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
@@ -25,11 +29,15 @@ import { AddPhotoAlternate as AddPhotoAlternateIcon } from "@mui/icons-material"
 import { useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import {
-  AddListingValidationSchema,
+  validationSchema,
   fetchNearByPlacesValidationSchema,
 } from "../utils/validationSchemas";
 import { getConfiguration, getLocationFromZip } from "../network/generalApi";
 import { getPlacesNearListing } from "../network/spaceShare";
+import { addListingFunction, updateListingFunction } from "../network/ListingThunk";
+import { toast } from 'react-toastify';
+import { useLocation } from 'react-router-dom';
+
 const { Country, State, City } = require("country-state-city");
 
 // Custom styled components
@@ -49,131 +57,15 @@ const FormCard = styled(Box)({
   width: "100%",
 });
 
-const furnishingItems = [
-  "Bed",
-  "Wardrobe",
-  "Study Table",
-  "Chair",
-  "Fan",
-  "AC",
-  "TV",
-  "Refrigerator",
-  "Washing Machine",
-  "Sofa",
-];
+
 
 const ListingType = [
   { id: 1, label: "Unit", value: "unit" },
   { id: 2, label: "Room", value: "room" },
 ];
 
-const initialState = {
-  listingType: "unit",
-  propertyType: "",
-  unitType: "",
-  roomType: "RSLT00005",
-  title: "",
-  propertyName: "",
-  description: "",
-  location: {
-    address: "",
-    address2: "",
-    city: "",
-    state: "",
-    country: "USA",
-    postalCode: "",
-    roomNumber: "",
-    coordinates: {
-      lat: null,
-      lng: null,
-    },
-  },
-  rentAmount: "",
-  depositAmount: "",
-  feesAmount: "",
-  petsAllowed: [],
-  petsPresent: [],
-  roommatePreferences: [],
-  foodPreferences: [],
-  configurationHouse: {
-    bedrooms: {
-      number: 1,
-      required: true,
-    },
-    bathrooms: {
-      number: 1,
-      required: true,
-    },
-    kitchen: {
-      number: 1,
-      required: true,
-    },
-    balcony: {
-      number: 0,
-      required: false,
-    },
-    parking: {
-      number: 0,
-      required: false,
-    },
-  },
-  ammenitiesIncluded: {
-    onsiteLaundry: false,
-    attachedBalcony: false,
-    water: false,
-    sweage: false,
-    trash: false,
-    electricity: false,
-    wifi: false,
-    landscaping: false,
-    pool: false,
-    gym: false,
-    commonStudyArea: false,
-  },
-  belongingsIncluded: false,
-  comesWithFurniture: false,
-  furnitureDetails: {
-    // Will be populated dynamically
-  },
-  furnitureImages: [],
-  unitImages: [],
-  isOwnedByPropertyManager: false,
-  availability: {
-    startDate: "",
-    endDate: "",
-    flexible: false,
-  },
-  roomateDetails: [],
-  saleType: "RSQT00002",
-  arePetsAllowed: false,
-  petsAllowed: [],
-  petsPresent: [],
-  amenities: [],
-  utilities: [],
-  comesWithFurniture: false,
-  furniture: [],
-  price: {
-    rent: {
-      amount: 0,
-      currency: "USD",
-    },
-    deposit: {
-      amount: 0,
-      currency: "USD",
-    },
-    fees: {
-      cleaning: {
-        amount: 0,
-        currency: "USD",
-      },
-    },
-    flexible: false,
-  },
-  currentResidents: [],
-  floorPlanImage: "",
-  videos: [],
-};
 
+// console.log("uday",initialState)
 const ITEM_HEIGHT = 48;
 const ITEM_PADDING_TOP = 8;
 
@@ -187,10 +79,11 @@ const MenuProps = {
 };
 
 export default function AddListing() {
+
   const theme = useTheme();
-  const [formData, setFormData] = React.useState(initialState);
   const [furnitureImages, setFurnitureImages] = useState(Array(3).fill(null));
   const [unitImages, setUnitImages] = useState(Array(3).fill(null));
+
   const [openFurnishingModal, setOpenFurnishingModal] = React.useState(false);
   const [openDialog, setOpenDialog] = React.useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -216,6 +109,7 @@ export default function AddListing() {
   );
   const [foodPreferencesOptions, setFoodPreferencesOptions] = useState([]);
   const [popularPlaces, setPopularPlaces] = useState([]);
+
   const [amenities, setAmenities] = useState([]);
   const [furniture, setFurniture] = useState([]);
   const [utilities, setUtilities] = useState([]);
@@ -229,6 +123,193 @@ export default function AddListing() {
   const [customValueType, setCustomValueType] = useState("");
   const [customValue, setCustomValue] = useState("");
   const [openPetModel, setOpenPetModel] = useState(false);
+  const [preferences, setPreferences] = useState({
+    gender: [],
+    ethnicity: [],
+    language: []
+  });
+  const furnishingItems = furniture;
+
+  const initialState = {
+    listingType: "unit",
+    propertyType: "",
+    unitType: "",
+    roomType: "RSLT00005",
+    title: "",
+    propertyName: "",
+    description: "",
+    location: {
+      address: "",
+      address2: "",
+      city: "",
+      state: "",
+      country: "USA",
+      postalCode: "",
+      roomNumber: "",
+      coordinates: {
+        lat: null,
+        lng: null,
+      },
+    },
+    rentAmount: "",
+    depositAmount: "",
+    feesAmount: "",
+    petsAllowed: [],
+    petsPresent: [],
+    roommatePreferences: roommatePreferencesOptions,
+    foodPreferences: [],
+    configurationHouse: {
+      bedrooms: {
+        number: 1,
+        required: true,
+      },
+      bathrooms: {
+        number: 1,
+        required: true,
+      },
+      kitchen: {
+        number: 1,
+        required: true,
+      },
+      balcony: {
+        number: 0,
+        required: false,
+      },
+      parking: {
+        number: 0,
+        required: false,
+      },
+    },
+    ammenitiesIncluded: false,
+    belongingsIncluded: false,
+    comesWithFurniture: false,
+    furnitureDetails: {
+      // Will be populated dynamically
+    },
+    furnitureImages: [],
+    unitImages: [],
+    isOwnedByPropertyManager: false,
+    availability: {
+      startDate: "",
+      endDate: "",
+      flexible: false,
+    },
+    roomateDetails: [],
+    saleType: "RSQT00002",
+    arePetsAllowed: false,
+    petsAllowed: [],
+    petsPresent: [],
+    amenities: [],
+    utilities: [],
+    comesWithFurniture: false,
+    furniture: [],
+    price: {
+      rent: {
+        amount: 0,
+        currency: "USD",
+      },
+      deposit: {
+        amount: 0,
+        currency: "USD",
+      },
+      fees: {
+        cleaning: {
+          amount: 0,
+          currency: "USD",
+        },
+      },
+      flexible: false,
+    },
+    currentResidents: [],
+    floorPlanImage: "",
+    videos: [],
+    items: {},
+    furnishing: "Unfurnished",
+  };
+  const [formData, setFormData] = React.useState(initialState);
+  const location = useLocation();
+  const { row } = location.state || {}; // Access the row data
+  const currentPath = location.pathname;
+
+  // Populate formData if the current path is the edit listing path
+  useEffect(() => {
+    if (currentPath === "/reswap/web/admin/listings/edit-listing" && row) {
+      setFormData({
+        listingType: row.listingType,
+        propertyType: row.propertyType,
+        unitType: row.unitType,
+        roomType: row.roomType,
+        title: row.title,
+        propertyName: row.propertyName,
+        description: row.description,
+        location: {
+          address: row.location.address,
+          address2: row.location.address2 || "", // Assuming address2 might be empty
+          city: row.location.city,
+          state: row.location.state,
+          country: row.location.country,
+          postalCode: row.location.postalCode,
+          roomNumber: row.location.roomNumber || "", // Assuming roomNumber might be empty
+          coordinates: {
+            lat: row.location.coordinates.lat,
+            lng: row.location.coordinates.lng,
+          },
+        },
+        rentAmount: row.price.rent.amount,
+        depositAmount: row.price.deposit.amount,
+        feesAmount: row.price.fees.cleaning.amount,
+        petsAllowed: row.petsAllowed,
+        petsPresent: row.petsPresent,
+        roommatePreferences: row.roommatePreferences,
+        foodPreferences: row.foodPreferences,
+        configurationHouse: {
+          bedrooms: {
+            number: row.configurationHouse.bedrooms?.number,
+            required: row.configurationHouse.bedrooms?.required,
+          },
+          bathrooms: {
+            number: row.configurationHouse.bathrooms?.number,
+            required: row.configurationHouse.bathrooms?.required,
+          },
+          kitchen: {
+            number: row.configurationHouse.kitchen?.number,
+            required: row.configurationHouse.kitchen?.required,
+          },
+          balcony: {
+            number: row.configurationHouse.balcony?.number,
+            required: row.configurationHouse.balcony?.required,
+          },
+          parking: {
+            number: row.configurationHouse.parking?.number,
+            required: row.configurationHouse.parking?.required,
+          },
+        },
+        comesWithFurniture: row.comesWithFurniture,
+        arePetsAllowed: row.arePetsAllowed,
+        belongingsIncluded: row.belongingsIncluded,
+        amenities: row.amenities.map(amenity => amenity.id), // Assuming you want just the IDs
+        utilities: row.utilities.map(utility => ({
+          id: utility.id,
+          included: utility.included,
+        })),
+        furniture: row.furniture,
+        furnitureImages: row.furnitureImages,
+        unitImages: row.unitImages,
+        availability: {
+          startDate: row.availability.startDate,
+          endDate: row.availability.endDate,
+          flexible: row.availability?.flexible,
+        },
+        currentResidents: row.currentResidents,
+        floorPlanImage: row.floorPlanImage,
+        saleType: row.saleType,
+        viewCount: row.viewCount,
+        verified: row.verified,
+        verifiedBy: row.verifiedBy,
+        // Add any other fields you need to populate
+      });
+    }
+  }, [currentPath, row]); // Dependency array includes currentPath and row
 
   useEffect(() => {
     const fetchData = async () => {
@@ -237,9 +318,9 @@ export default function AddListing() {
         const roommatePreferencesOptions = await getConfiguration(
           "roommatePreferencesOptions"
         ); // Provide the required key
-        if (roommatePreferencesOptions?.body?.preferences) {
+        if (roommatePreferencesOptions?.body?.items) {
           setRoommatePreferencesOptions(
-            roommatePreferencesOptions.body.preferences
+            roommatePreferencesOptions.body.items
           );
         }
 
@@ -253,8 +334,9 @@ export default function AddListing() {
         const foodPreferencesOptions = await getConfiguration(
           "foodPreferencesOptions"
         ); // Provide the required key
-        if (foodPreferencesOptions?.body?.preferences) {
-          setFoodPreferencesOptions(foodPreferencesOptions.body.preferences);
+        // console.log("foodprefferre",foodPreferencesOptions,"iiiiiiiiiiii",foodPreferencesOptions.body.items)
+        if (foodPreferencesOptions.body.items) {
+          setFoodPreferencesOptions(foodPreferencesOptions.body?.items);
         }
 
         //amenities
@@ -300,9 +382,9 @@ export default function AddListing() {
     fetchData();
   }, []);
 
-  // console.log("roommatePreferencesOptions--->", roommatePreferencesOptions);
+  console.log("roommatePreferencesOptions--->", roommatePreferencesOptions);
   // console.log("propertyType--->", propertyType);
-  // console.log("foodPreferencesOptions--->", foodPreferencesOptions);
+  console.log("foodPreferencesOptions--->", foodPreferencesOptions);
   // console.log("popularPlaces--->", popularPlaces);
   // console.log("amenities--->", amenities);
   // console.log("furniture--->", furniture);
@@ -394,14 +476,12 @@ export default function AddListing() {
   };
 
   const handleListingTypeSelect = (type) => {
-    if (type === "unit") {
-      setFormData((prev) => ({ ...prev, roomType: "RSLT00005" }));
-    } else {
-      setFormData((prev) => ({ ...prev, roomType: "" }));
-    }
+    if (!type) return;
+    
     setFormData((prev) => ({
       ...prev,
       listingType: type,
+      roomType: type === "unit" ? "RSLT00005" : "",
     }));
   };
 
@@ -430,27 +510,52 @@ export default function AddListing() {
   };
 
   const handleFurnishingChange = (event) => {
+    const newValue = event.target.value;
     setFormData((prev) => ({
       ...prev,
-      furnishing: event.target.value,
+      furnishing: newValue,
+      // Reset both items and furniture if changing to Unfurnished
+      items: newValue === "Unfurnished" ? {} : prev.items,
+      furniture: newValue === "Unfurnished" ? [] : prev.furniture,
     }));
     setErrors((prev) => ({ ...prev, furnishing: "" }));
+  };
+
+  const handleQuantityChange = (itemId, change) => {
+    setFormData((prev) => {
+      const currentCount = ((prev.items && prev.items[itemId]) || 0) + change;
+      const newCount = Math.max(0, currentCount);
+
+      // Update items object for UI display
+      const newItems = {
+        ...prev.items,
+        [itemId]: newCount,
+      };
+
+      // Create furniture array in required format
+      const newFurniture = Object.entries(newItems)
+        .filter(([_, count]) => count > 0) // Only include items with count > 0
+        .map(([id, count]) => ({
+          id,
+          count,
+          name: furniture.find(item => item.id === id)?.name || '',
+          common: false,
+          exclusiveAccess: false
+        }));
+
+      return {
+              ...prev,
+        items: newItems,
+        furniture: newFurniture
+      };
+    });
   };
 
   const handleClearAll = () => {
     setFormData((prev) => ({
       ...prev,
       items: {},
-    }));
-  };
-
-  const handleQuantityChange = (item, change) => {
-    setFormData((prev) => ({
-      ...prev,
-      items: {
-        ...prev.items,
-        [item]: Math.max(0, (prev.items[item] || 0) + change),
-      },
+      furniture: [] // Clear furniture array
     }));
   };
 
@@ -465,11 +570,19 @@ export default function AddListing() {
   // Process validation errors and update the state
   const handleValidationError = (error) => {
     const validationErrors = {};
-
     error.inner.forEach((err) => {
-      validationErrors[err.path] = err.message;
+      // Handle nested paths
+      const path = err.path.split('.');
+      let current = validationErrors;
+      
+      for (let i = 0; i < path.length - 1; i++) {
+        if (!current[path[i]]) {
+          current[path[i]] = {};
+        }
+        current = current[path[i]];
+      }
+      current[path[path.length - 1]] = err.message;
     });
-
     setErrors(validationErrors);
   };
 
@@ -480,14 +593,29 @@ export default function AddListing() {
 
       // Transform form data to match API format
       const apiFormData = {
-        listingType: formData.listingType,
-        propertyType: formData.propertyType,
-        unitType: formData.unitType,
-        roomType: formData.roomType,
-        title: formData.title,
+        listingType: formData.listingType || "",
+        propertyType: formData.propertyType || "",
+        unitType: formData.unitType || "",
+        roomType: formData.roomType || "",
+        title: formData.title || "",
+        foodPreferences: formData.foodPreferences ? formData.foodPreferences : [],
+        roommatePreferences: [
+          {
+            key: "Gender",
+            values: preferences.gender
+          },
+          {
+            key: "Ethnicity",
+            values: preferences.ethnicity
+          },
+          {
+            key: "Language",
+            values: preferences.language
+          }
+        ],
         propertyName: formData.propertyName || null,
-        description: formData.description,
-        belongingsIncluded: formData.belongingsIncluded,
+        description: formData.description || "",
+        belongingsIncluded: formData.belongingsIncluded ?? false,
         saleType: "RSQT00002",
         arePetsAllowed: formData.petsAllowed === "Allowed",
         petsAllowed: formData.petsAllowed || [],
@@ -496,41 +624,35 @@ export default function AddListing() {
         utilities: formData.utilities || [],
         configurationHouse: {
           bedrooms: {
-            number: parseInt(formData.configurationHouse.bedrooms.number) || 0,
+            number: parseInt(formData.configurationHouse?.bedrooms?.number) || 0,
             required: true,
           },
           bathrooms: {
-            number: parseInt(formData.configurationHouse.bathrooms.number) || 0,
+            number: parseInt(formData.configurationHouse?.bathrooms?.number) || 0,
             required: true,
           },
           kitchen: {
-            number: parseInt(formData.configurationHouse.kitchen.number) || 1,
+            number: parseInt(formData.configurationHouse?.kitchen?.number) || 0,
             required: true,
           },
           balcony: {
-            number: parseInt(formData.configurationHouse.balcony.number) || 0,
+            number: parseInt(formData.configurationHouse?.balcony?.number) || 0,
             required: false,
           },
         },
         comesWithFurniture: formData.furnishing !== "Unfurnished",
-        furniture: Object.entries(formData.items || {}).map(([id, count]) => ({
-          id,
-          count,
-          common: false,
-          exclusiveAccess: false,
-        })),
+        furniture: formData.furniture || [],
         location: {
-          address: formData.location.address,
-          address2: formData.location.address2,
-          city: formData.location.city,
-          state: formData.location.state,
-          country: formData.location.country,
-          postalCode: formData.location.postalCode,
-          roomNumber:
-            formData.listingType === "room" ? formData.location.roomNumber : "",
+          address: formData.location?.address || "",
+          address2: formData.location?.address2 || "",
+          city: formData.location?.city || "",
+          state: formData.location?.state || "",
+          country: formData.location?.country || "",
+          postalCode: formData.location?.postalCode || "",
+          roomNumber: formData.listingType === "room" ? formData.location?.roomNumber : "",
           coordinates: {
-            lat: formData.location.coordinates.lat,
-            lng: formData.location.coordinates.lng,
+            lat: formData.location?.coordinates?.lat || null,
+            lng: formData.location?.coordinates?.lng || null,
           },
         },
         price: {
@@ -548,7 +670,7 @@ export default function AddListing() {
               currency: "USD",
             },
           },
-          flexible: formData.price.flexible,
+          flexible: formData.price?.flexible || false,
         },
         availability: {
           startDate: formData.availableFrom
@@ -557,30 +679,78 @@ export default function AddListing() {
           endDate: formData.availableTill
             ? new Date(formData.availableTill).toISOString()
             : "",
-          flexible: formData.availability.flexible,
+          flexible: formData.availability?.flexible || false,
         },
         currentResidents: formData.roomateDetails || [],
         furnitureImages: formData.furnitureImages || [],
         unitImages: formData.unitImages || [],
       };
+      
 
       console.log("Data before validation:", apiFormData);
 
       // Validate the transformed data
-      const validatedData = await AddListingValidationSchema.validate(
+      const validatedData = await validationSchema.validate(
         apiFormData,
         {
           abortEarly: false,
         }
       );
 
-      console.log("Data ready for API:", validatedData);
+      console.log("Data ready for API:");
 
-      // Make API call with validatedData
-      // await addListingFunction(validatedData);
+      let response; // Declare response variable
+
+      // Make API call based on the current path
+      if (currentPath === "/reswap/web/admin/listings/edit-listing" && row) {
+        response = await updateListingFunction(validatedData);
+      } else {
+        response = await addListingFunction(validatedData);
+      }
+
+      // Check if response is successful
+      if (response?.data?.status?.code === 200) {
+        // Show success toast
+        toast.success(response.data.status.message, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        
+        // Optional: Reset form or redirect
+        setFormData(initialState);
+        // Or redirect to another page
+        // history.push(`/listing/${response.data.body}`);
+      } else {
+        // Handle unexpected response structure
+        toast.error("Unexpected response from the server.", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
+
     } catch (error) {
-      console.log("Validation errors:", error);
-      handleError(error);
+      if (error.name === "ValidationError") {
+        handleValidationError(error);
+      } else {
+        // Display error message from the API or a generic error message
+        const errorMessage = error.response?.data?.message || error.message || "An error occurred. Please try again.";
+        toast.error(errorMessage, {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -656,7 +826,7 @@ export default function AddListing() {
   }, [formData.location.address]);
 
   const handleConfigurationChange = (type, value) => {
-    console.log("handleConfigurationChange", type, value);
+    if (!value) return;
 
     setFormData((prev) => ({
       ...prev,
@@ -683,8 +853,60 @@ export default function AddListing() {
     }));
   };
 
+  const handlePreferenceChange = (name, value) => {
+    setPreferences(prev => ({
+      ...prev,
+      [name.toLowerCase()]: value
+    }));
+  };
+
+  // Add this helper function to find pet name by ID
+  const getPetNameById = (petId) => {
+    const pet = pets.find(p => p.id === petId);
+    return pet ? pet.name : '';
+  };
+
+  // Optional: Add toggle for common/exclusive access
+  const handleFurnitureAccessChange = (itemId, accessType) => {
+    setFormData((prev) => {
+      const newFurniture = prev.furniture.map(item => {
+        if (item.id === itemId) {
+          if (accessType === 'common') {
+            return {
+              ...item,
+              common: !item.common,
+              exclusiveAccess: false // Set opposite to false
+            };
+          } else {
+            return {
+              ...item,
+              exclusiveAccess: !item.exclusiveAccess,
+              common: false // Set opposite to false
+            };
+          }
+        }
+        return item;
+      });
+
+      return {
+        ...prev,
+        furniture: newFurniture
+      };
+    });
+  };
+
+  // Function to handle adding/editing furniture
+  const handleAddEditFurniture = (selectedFurniture) => {
+    setFormData((prev) => ({
+      ...prev,
+      furniture: selectedFurniture,
+    }));
+    setOpenFurnishingModal(false);
+  };
+
   return (
     <GradientBox>
+      
       <h1 className="text-2xl font-semibold">Add Listing</h1>
       <FormCard>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -890,8 +1112,8 @@ export default function AddListing() {
                   name="location.postalCode"
                   value={formData.location.postalCode}
                   onChange={handleChange}
-                  error={!!errors.zip}
-                  helperText={errors.zip}
+                  error={!!errors.location?.postalCode}
+                  helperText={errors.location?.postalCode}
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       height: "56px",
@@ -997,8 +1219,8 @@ export default function AddListing() {
                   name="location.address"
                   value={formData.location.address}
                   onChange={handleChange}
-                  error={!!errors?.["location.address"]}
-                  helperText={errors?.["location.address"]}
+                  error={!!errors?.location?.address}
+                  helperText={errors?.location?.address}
                 />
               </Grid>
               <Grid item xs={12} md={6}>
@@ -1009,8 +1231,8 @@ export default function AddListing() {
                   name="location.address2"
                   value={formData.location.address2}
                   onChange={handleChange}
-                  error={!!errors?.["location.address2"]}
-                  helperText={errors?.["location.address2"]}
+                  error={!!errors?.location?.address2}
+                  helperText={errors?.location?.address2}
                 />
               </Grid>
               {formData.listingType === "room" && (
@@ -1022,8 +1244,8 @@ export default function AddListing() {
                     name="location.roomNumber"
                     value={formData.location.roomNumber}
                     onChange={handleChange}
-                    error={!!errors?.["location.roomNumber"]}
-                    helperText={errors?.["location.roomNumber"]}
+                    error={!!errors?.location?.roomNumber}
+                    helperText={errors?.location?.roomNumber}
                   />
                 </Grid>
               )}
@@ -1060,75 +1282,41 @@ export default function AddListing() {
               Property Details
             </Typography>
             <Grid container spacing={3}>
-              {/* <Grid item xs={12} md={6}>
+              
+
+             <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Roommate Preferences</InputLabel>
+                  <InputLabel>Food Preferences</InputLabel>
                   <Select
-                    name="roommatePreference"
-                    value={formData.roommatePreference}
+                    multiple
+                    name="foodPreferences"
+                    value={formData.foodPreferences || []}
                     onChange={handleChange}
+                    input={<OutlinedInput label="Food Preferences" />}
+                    renderValue={(selected) => {
+                      return foodPreferencesOptions
+                        .filter(option => selected.includes(option.id))
+                        .map(option => option.name)
+                        .join(', ');
+                    }}
+                    MenuProps={MenuProps}
                     sx={{
                       "& .MuiOutlinedInput-notchedOutline": {
                         borderColor: "#23BB67",
                       },
                     }}
                   >
-                    <MenuItem value="Male">Male Only</MenuItem>
-                    <MenuItem value="Female">Female Only</MenuItem>
-                    <MenuItem value="Students">Students Only</MenuItem>
-                    <MenuItem value="Professionals">
-                      Professionals Only
-                    </MenuItem>
-                    <MenuItem value="Any">Any</MenuItem>
-                  </Select>
-
-                  <InputLabel id="demo-multiple-name-label">
-                    Roommate Preferences
-                  </InputLabel>
-                  <Select
-                    labelId="demo-multiple-name-label"
-                    id="demo-multiple-name"
-                    multiple
-                    value={formData.roomatePreferences}
-                    onChange={handleChange}
-                    input={<OutlinedInput label="Name" />}
-                    MenuProps={MenuProps}
-                    name=""
-                  >
-                    {names.map((name) => (
-                      <MenuItem
-                        key={name}
-                        value={name}
-                        style={getStyles(name, personName, theme)}
-                      >
-                        {name}
+                    {foodPreferencesOptions.map((option) => (
+                      <MenuItem key={option.id} value={option.id}>
+                        <Checkbox 
+                          checked={formData.foodPreferences?.indexOf(option.id) > -1} 
+                        />
+                        <ListItemText primary={option.name} />
                       </MenuItem>
                     ))}
                   </Select>
                 </FormControl>
-              </Grid> */}
-
-              {/* <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Food Preferences</InputLabel>
-                  <Select
-                    name="foodPreference"
-                    value={formData.foodPreference}
-                    onChange={handleChange}
-                    sx={{
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#23BB67",
-                      },
-                    }}
-                  >
-                    <MenuItem value="Vegetarian">Vegetarian Only</MenuItem>
-                    <MenuItem value="NonVegetarian">
-                      Non-Vegetarian Allowed
-                    </MenuItem>
-                    <MenuItem value="Any">No Preference</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid> */}
+              </Grid>
 
               <Grid item xs={12} md={6}>
                 <TextField
@@ -1168,7 +1356,7 @@ export default function AddListing() {
                   control={
                     <Checkbox
                       name="availability.flexible"
-                      checked={formData.availability.flexible}
+                      checked={formData.availability?.flexible}
                       onChange={handleChangeAvailabilityFlexible}
                     />
                   }
@@ -1179,26 +1367,24 @@ export default function AddListing() {
               <Grid item xs={12}>
                 <Typography
                   variant="subtitle1"
-                  sx={{ mt: 2, mb: 1, color: "#10552F", fontWeight: 500 }}
+                  sx={{ 
+                    mt: 2, 
+                    mb: 1, 
+                    color: errors?.configurationHouse?.bedrooms?.number ? "error.main" : "#10552F",
+                    fontWeight: 500 
+                  }}
                 >
                   Number of Bedrooms
                 </Typography>
                 <ToggleButtonGroup
-                  value={formData.configurationHouse.bedrooms.number.toString()}
+                  value={formData.configurationHouse?.bedrooms?.number?.toString() || "1"}
                   exclusive
-                  onChange={(_, value) =>
-                    handleConfigurationChange("bedrooms", value)
-                  }
-                  fullWidth
-                  sx={{
-                    "& .MuiToggleButton-root": {
-                      "&.Mui-selected": {
-                        backgroundColor: "#23BB67",
-                        color: "white",
-                        "&:hover": { backgroundColor: "#10552F" },
-                      },
-                    },
+                  onChange={(_, newValue) => {
+                    if (newValue !== null) {
+                      handleConfigurationChange("bedrooms", newValue);
+                    }
                   }}
+                  fullWidth
                 >
                   {["0", "1", "2", "3", "4", "5+"].map((item) => (
                     <ToggleButton key={item} value={item}>
@@ -1206,30 +1392,33 @@ export default function AddListing() {
                     </ToggleButton>
                   ))}
                 </ToggleButtonGroup>
+                {errors?.configurationHouse?.bedrooms?.number && (
+                  <FormHelperText error>
+                    {errors.configurationHouse.bedrooms.number}
+                  </FormHelperText>
+                )}
               </Grid>
               <Grid item xs={12}>
                 <Typography
                   variant="subtitle1"
-                  sx={{ mt: 2, mb: 1, color: "#10552F", fontWeight: 500 }}
+                  sx={{ 
+                    mt: 2, 
+                    mb: 1, 
+                    color: errors?.configurationHouse?.bathrooms?.number ? "error.main" : "#10552F",
+                    fontWeight: 500 
+                  }}
                 >
                   Number of Bathrooms
                 </Typography>
                 <ToggleButtonGroup
-                  value={formData.configurationHouse.bathrooms.number.toString()}
+                  value={formData.configurationHouse?.bathrooms?.number?.toString() || "1"}
                   exclusive
-                  onChange={(_, value) =>
-                    handleConfigurationChange("bathrooms", value)
-                  }
-                  fullWidth
-                  sx={{
-                    "& .MuiToggleButton-root": {
-                      "&.Mui-selected": {
-                        backgroundColor: "#23BB67",
-                        color: "white",
-                        "&:hover": { backgroundColor: "#10552F" },
-                      },
-                    },
+                  onChange={(_, newValue) => {
+                    if (newValue !== null) {
+                      handleConfigurationChange("bathrooms", newValue);
+                    }
                   }}
+                  fullWidth
                 >
                   {["0", "1", "2", "3", "4", "5+"].map((item) => (
                     <ToggleButton key={item} value={item}>
@@ -1237,30 +1426,33 @@ export default function AddListing() {
                     </ToggleButton>
                   ))}
                 </ToggleButtonGroup>
+                {errors?.configurationHouse?.bathrooms?.number && (
+                  <FormHelperText error>
+                    {errors.configurationHouse.bathrooms.number}
+                  </FormHelperText>
+                )}
               </Grid>
               <Grid item xs={12}>
                 <Typography
                   variant="subtitle1"
-                  sx={{ mt: 2, mb: 1, color: "#10552F", fontWeight: 500 }}
+                  sx={{ 
+                    mt: 2, 
+                    mb: 1, 
+                    color: errors?.configurationHouse?.balcony?.number ? "error.main" : "#10552F",
+                    fontWeight: 500 
+                  }}
                 >
                   Number of Balconies
                 </Typography>
                 <ToggleButtonGroup
-                  value={formData.configurationHouse.balcony.number.toString()}
+                  value={formData.configurationHouse?.balcony?.number?.toString() || "0"}
                   exclusive
-                  onChange={(_, value) =>
-                    handleConfigurationChange("balcony", value)
-                  }
-                  fullWidth
-                  sx={{
-                    "& .MuiToggleButton-root": {
-                      "&.Mui-selected": {
-                        backgroundColor: "#23BB67",
-                        color: "white",
-                        "&:hover": { backgroundColor: "#10552F" },
-                      },
-                    },
+                  onChange={(_, newValue) => {
+                    if (newValue !== null) {
+                      handleConfigurationChange("balcony", newValue);
+                    }
                   }}
+                  fullWidth
                 >
                   {["0", "1", "2", "3", "4", "5+"].map((item) => (
                     <ToggleButton key={item} value={item}>
@@ -1268,30 +1460,33 @@ export default function AddListing() {
                     </ToggleButton>
                   ))}
                 </ToggleButtonGroup>
+                {errors?.configurationHouse?.balcony?.number && (
+                  <FormHelperText error>
+                    {errors.configurationHouse.balcony.number}
+                  </FormHelperText>
+                )}
               </Grid>
               <Grid item xs={12}>
                 <Typography
                   variant="subtitle1"
-                  sx={{ mt: 2, mb: 1, color: "#10552F", fontWeight: 500 }}
+                  sx={{ 
+                    mt: 2, 
+                    mb: 1, 
+                    color: errors?.configurationHouse?.parking?.number ? "error.main" : "#10552F",
+                    fontWeight: 500 
+                  }}
                 >
                   Car Parking
                 </Typography>
                 <ToggleButtonGroup
-                  value={formData.configurationHouse.parking.number.toString()}
+                  value={formData.configurationHouse?.parking?.number?.toString() || "0"}
                   exclusive
-                  onChange={(_, value) =>
-                    handleConfigurationChange("parking", value)
-                  }
-                  fullWidth
-                  sx={{
-                    "& .MuiToggleButton-root": {
-                      "&.Mui-selected": {
-                        backgroundColor: "#23BB67",
-                        color: "white",
-                        "&:hover": { backgroundColor: "#10552F" },
-                      },
-                    },
+                  onChange={(_, newValue) => {
+                    if (newValue !== null) {
+                      handleConfigurationChange("parking", newValue);
+                    }
                   }}
+                  fullWidth
                 >
                   {["0", "1", "2", "3", "4", "5+"].map((item) => (
                     <ToggleButton key={item} value={item}>
@@ -1299,6 +1494,11 @@ export default function AddListing() {
                     </ToggleButton>
                   ))}
                 </ToggleButtonGroup>
+                {errors?.configurationHouse?.parking?.number && (
+                  <FormHelperText error>
+                    {errors.configurationHouse.parking.number}
+                  </FormHelperText>
+                )}
               </Grid>
 
               <Grid item xs={12}>
@@ -1345,9 +1545,9 @@ export default function AddListing() {
                     Array.isArray(formData.petsAllowed) &&
                     formData.petsAllowed.length > 0 ? (
                       <Box sx={{ mt: 1, mb: 2 }}>
-                        {formData.petsAllowed.map((pet) => (
+                        {formData.petsAllowed.map((petId) => (
                           <Typography
-                            key={pet.id}
+                            key={petId}
                             sx={{
                               display: "inline-block",
                               backgroundColor: "#23BB67",
@@ -1358,7 +1558,7 @@ export default function AddListing() {
                               fontSize: "0.875rem",
                             }}
                           >
-                            {pet.name}
+                            {getPetNameById(petId)}
                           </Typography>
                         ))}
                       </Box>
@@ -1389,30 +1589,17 @@ export default function AddListing() {
                   Furnishing Status
                 </Typography>
                 <ToggleButtonGroup
-                  value={formData.furnishing}
+                  value={formData.furnishing || "Unfurnished"}
                   exclusive
-                  onChange={(_, value) =>
-                    setFormData(prev => ({
-                      ...prev,
-                      furnishing: value,
-                      comesWithFurniture: value !== "Unfurnished"
-                    }))
-                  }
-                  fullWidth
-                  sx={{
-                    "& .MuiToggleButton-root": {
-                      "&.Mui-selected": {
-                        backgroundColor: "#23BB67",
-                        color: "white",
-                        "&:hover": { backgroundColor: "#10552F" },
-                      },
-                    },
+                  onChange={(_, newValue) => {
+                    if (newValue !== null) {
+                      handleFurnishingChange({ target: { value: newValue } });
+                    }
                   }}
+                  fullWidth
                 >
                   <ToggleButton value="Unfurnished">Unfurnished</ToggleButton>
-                  <ToggleButton value="Semi-Furnished">
-                    Semi-Furnished
-                  </ToggleButton>
+                  <ToggleButton value="Semi-Furnished">Semi-Furnished</ToggleButton>
                   <ToggleButton value="Furnished">Furnished</ToggleButton>
                 </ToggleButtonGroup>
               </Grid>
@@ -1423,25 +1610,19 @@ export default function AddListing() {
                     <Typography variant="subtitle1" fontWeight="bold">
                       Furniture Includes
                     </Typography>
-                    {Object.entries(formData.items || {}).length > 0 ? (
-                      <Box sx={{ mt: 1 }}>
-                        {Object.entries(formData.items).map(([item, count]) => (
-                          count > 0 && (
-                            <Typography key={item} variant="body2">
-                              • {item}: {count}
+                    <Box sx={{ backgroundColor: "#f8f9fa", borderRadius: 2, p: 2 }}>
+                      {formData.furniture.map((item) => (
+                        <Grid container key={item.id} alignItems="center" spacing={2}>
+                          <Grid item xs={4}>
+                            <Typography sx={{ color: "#333", fontWeight: 500 }}>
+                              {item.name}({item.count})
                             </Typography>
-                          )
-                        ))}
-                      </Box>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">
-                        No furniture items selected
-                      </Typography>
-                    )}
-                    <Button
-                      onClick={() => setOpenFurnishingModal(true)}
-                      sx={{ mt: 2 }}
-                    >
+                          </Grid>
+                          
+                        </Grid>
+                      ))}
+                    </Box>
+                    <Button onClick={() => setOpenFurnishingModal(true)} sx={{ mt: 2 }}>
                       Add/Edit Furniture
                     </Button>
                   </Box>
@@ -1596,7 +1777,7 @@ export default function AddListing() {
               control={
                 <Checkbox
                   name="price.flexible"
-                  checked={formData.price.flexible}
+                  checked={formData.price?.flexible}
                   onChange={(event) => {
                     setFormData((prev) => ({
                       ...prev,
@@ -1703,6 +1884,29 @@ export default function AddListing() {
             </Grid>
           </Box>
 
+          <Box sx={{ mt: 2 }}>
+            {roommatePreferencesOptions.map((preference) => (
+              <FormControl key={preference.name} fullWidth sx={{ mb: 2 }}>
+                <InputLabel id={`${preference.name}-label`}>{preference.name}</InputLabel>
+                <Select
+                  labelId={`${preference.name}-label`}
+                  multiple
+                  value={preferences[preference.name.toLowerCase()]}
+                  onChange={(e) => handlePreferenceChange(preference.name, e.target.value)}
+                  input={<OutlinedInput label={preference.name} />}
+                  renderValue={(selected) => selected.join(', ')}
+                >
+                  {preference.options.map((option) => (
+                    <MenuItem key={option} value={option}>
+                      <Checkbox checked={preferences[preference.name.toLowerCase()].indexOf(option) > -1} />
+                      <ListItemText primary={option} />
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ))}
+          </Box>
+
           <Box sx={{ display: "flex", justifyContent: "end" }}>
             <Button
               onClick={handleSubmit}
@@ -1731,8 +1935,8 @@ export default function AddListing() {
                 position: "absolute",
                 maxWidth: 600,
                 width: "90%",
-                maxHeight: "80vh", // Limits height to 80% of viewport height
-                overflowY: "auto", // Enables vertical scrolling when content overflows
+                maxHeight: "80vh",
+                overflowY: "auto",
                 margin: "auto",
                 mt: 5,
                 p: 4,
@@ -1752,10 +1956,7 @@ export default function AddListing() {
                   mb: 3,
                 }}
               >
-                <Typography
-                  variant="h6"
-                  sx={{ color: "#10552F", fontWeight: 600 }}
-                >
+                <Typography variant="h6" sx={{ color: "#10552F", fontWeight: 600 }}>
                   Furnishing Details
                 </Typography>
                 <Button
@@ -1769,6 +1970,7 @@ export default function AddListing() {
                   ✖
                 </Button>
               </Box>
+
               <FormControl fullWidth margin="normal" sx={{ mb: 3 }}>
                 <InputLabel>Furnishing Status</InputLabel>
                 <Select
@@ -1796,10 +1998,7 @@ export default function AddListing() {
                   mb: 3,
                 }}
               >
-                <Typography
-                  variant="subtitle1"
-                  sx={{ color: "#10552F", fontWeight: 500 }}
-                >
+                <Typography variant="subtitle1" sx={{ color: "#10552F", fontWeight: 500 }}>
                   Available Items
                 </Typography>
                 <Button
@@ -1816,17 +2015,11 @@ export default function AddListing() {
                 </Button>
               </Box>
 
-              <Box
-                sx={{
-                  backgroundColor: "#f8f9fa",
-                  borderRadius: 2,
-                  p: 2,
-                }}
-              >
+              <Box sx={{ backgroundColor: "#f8f9fa", borderRadius: 2, p: 2 }}>
                 {furnishingItems?.map((item) => (
                   <Grid
                     container
-                    key={item}
+                    key={item.id}
                     alignItems="center"
                     justifyContent="space-between"
                     sx={{
@@ -1836,7 +2029,7 @@ export default function AddListing() {
                     }}
                   >
                     <Typography sx={{ color: "#333", fontWeight: 500 }}>
-                      {item}
+                      {item.name}
                     </Typography>
                     <Box
                       display="flex"
@@ -1850,7 +2043,7 @@ export default function AddListing() {
                     >
                       <IconButton
                         size="small"
-                        onClick={() => handleQuantityChange(item, -1)}
+                        onClick={() => handleQuantityChange(item.id, -1)}
                         sx={{
                           color: "#23BB67",
                           "&:hover": {
@@ -1867,11 +2060,11 @@ export default function AddListing() {
                           textAlign: "center",
                         }}
                       >
-                        {formData.items?.[item] || 0}
+                        {formData.items?.[item.id] || 0}
                       </Typography>
                       <IconButton
                         size="small"
-                        onClick={() => handleQuantityChange(item, 1)}
+                        onClick={() => handleQuantityChange(item.id, 1)}
                         sx={{
                           color: "#23BB67",
                           "&:hover": {
@@ -1963,12 +2156,10 @@ export default function AddListing() {
                         onClick={() => {
                           setFormData((prev) => ({
                             ...prev,
-                            petsAllowed: [...prev.petsAllowed, pet],
+                            petsAllowed: [...prev.petsAllowed, pet.id],
                           }));
                         }}
-                        disabled={formData.petsAllowed.some(
-                          (p) => p.id === pet.id
-                        )}
+                        disabled={formData.petsAllowed.includes(pet.id)}
                         sx={{
                           color: "#23BB67",
                           minWidth: "40px",
@@ -1996,10 +2187,10 @@ export default function AddListing() {
                   <Box
                     sx={{ backgroundColor: "#f8f9fa", borderRadius: 2, p: 2 }}
                   >
-                    {formData.petsAllowed.map((pet) => (
+                    {formData.petsAllowed.map((petId) => (
                       <Grid
                         container
-                        key={pet.id}
+                        key={petId}
                         alignItems="center"
                         justifyContent="space-between"
                         sx={{
@@ -2009,14 +2200,14 @@ export default function AddListing() {
                         }}
                       >
                         <Typography sx={{ color: "#333", fontWeight: 500 }}>
-                          {pet.name}
+                          {getPetNameById(petId)}
                         </Typography>
                         <Button
                           onClick={() => {
                             setFormData((prev) => ({
                               ...prev,
                               petsAllowed: prev.petsAllowed.filter(
-                                (p) => p.id !== pet.id
+                                (p) => p !== petId
                               ),
                             }));
                           }}

@@ -36,9 +36,27 @@ export const addListingThunk = createAsyncThunk(
   }
 );
 
-export const addListingFunction = async ({ formData }) => {
+export const addListingFunction = async ( formData ) => {
+  console.log("apiaddlist",formData)
   try {
-    const response = await axios.post(ADD_LISTING, formData);
+    const response = await axios.post(ADD_LISTING, formData,{
+      withCredentials: true, // ✅ Ensures cookies are sent with the request
+    });
+    return response;
+  } catch (error) {
+    if (error.response) {
+      throw error; // ✅ Throw the error instead of returning it
+    } else {
+      throw new Error("Something went wrong. Please try again.");
+    }
+  }
+};
+export const updateListingFunction = async ( formData ) => {
+  console.log("apiaddlist",formData)
+  try {
+    const response = await axios.put(EDIT_LISTING, formData,{
+      withCredentials: true, // ✅ Ensures cookies are sent with the request
+    });
     return response;
   } catch (error) {
     if (error.response) {

@@ -47,6 +47,7 @@ const App = () => {
               <Route index element={<Listing />} />{" "}
               {/* ✅ Default component for /listings */}
               <Route path="add-listing" element={<AddListing />} />{" "}
+              <Route path="edit-listing" element={<AddListing />} />{" "}
               {/* ✅ Relative path */}
               <Route
                 path="listing-details/:listingId"

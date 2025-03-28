@@ -33,6 +33,8 @@ const Ctable = ({
   setRowsPerPage,
 }) => {
   const [anchorEl, setAnchorEl] = useState(null);
+  const [row, setRowData] = useState(null);
+  
   const navigate = useNavigate();
   const handleOpen = (event) => {
     event.stopPropagation(); // Prevent row click event
@@ -133,7 +135,11 @@ const Ctable = ({
                   onClick={(e) => e.stopPropagation()}
                 >
                   {rowData?.status}
-                  <IconButton onClick={handleOpen}>
+                  <IconButton onClick={(e) => {
+                    e.stopPropagation(); // Prevent row click event
+                    setRowData(rowData);
+                    handleOpen(e); // Pass the event to handleOpen
+                  }}>
                     <MoreVertIcon />
                   </IconButton>
                 </TableCell>
@@ -172,7 +178,7 @@ const Ctable = ({
         <List>
           <ListItem
             button
-            onClick={() => navigate("/reswap/web/admin/addform")}
+            onClick={() => navigate("/reswap/web/admin/listings/edit-listing", { state: { row } })}
           >
             <ListItemIcon>
               <EditIcon />
