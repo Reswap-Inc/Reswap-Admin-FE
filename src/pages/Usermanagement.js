@@ -192,9 +192,10 @@ console.log("bannnnnnnnnnnnn",res)
                 ))}
               </TableRow>
             </TableHead>
+            
             <TableBody>
               {listings?.body?.map((row, index) => (
-                <TableRow key={index} onClick={() => navigate("/reswap/web/admin/user-profile")} style={{ cursor: "pointer" }}>
+                <TableRow key={index} style={{ cursor: "pointer" }}>
                   <TableCell>{row?.sub}</TableCell>
                   <TableCell>{row?.family_name}</TableCell>
                   <TableCell>{row?.given_name}</TableCell>
@@ -242,12 +243,12 @@ console.log("bannnnnnnnnnnnn",res)
         }}
       >
         <List>
-          <ListItem button onClick={() => navigate("/reswap/web/admin/adduser")}>
+          {/* <ListItem button onClick={() => navigate("/reswap/web/admin/adduser")}>
             <ListItemIcon>
               <EditIcon />
             </ListItemIcon>
             <ListItemText primary="Edit" />
-          </ListItem>
+          </ListItem> */}
           <ListItem button onClick={() => {
             setopenmode(true)
           }}>

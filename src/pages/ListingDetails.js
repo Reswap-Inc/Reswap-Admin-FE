@@ -55,7 +55,7 @@ const ListingDetails = () => {
   const { listingId } = useParams();
   const dispatch = useDispatch();
   const { listings } = useSelector((state) => state.listing);
-  console.log(listings, "listinggg");
+  console.log(listings, "listinggguday");
 
   useEffect(() => {
     if (listingId) {

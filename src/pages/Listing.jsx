@@ -119,13 +119,14 @@ const Listing = () => {
   };
 
   return (
-    <div>
+    <div style={{ backgroundColor: "#FAF9F6" }}>
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           py: "1rem",
+          width:"98%"
         }}
       >
         {/* Left side - Search bar */}

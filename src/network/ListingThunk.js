@@ -39,7 +39,7 @@ export const addListingThunk = createAsyncThunk(
 );
 
 export const addListingFunction = async ( formData ) => {
-  console.log("apiaddlist",formData)
+  
   try {
     const response = await axios.post(ADD_LISTING, formData,{
       withCredentials: true, // ✅ Ensures cookies are sent with the request
@@ -47,22 +47,31 @@ export const addListingFunction = async ( formData ) => {
     return response;
   } catch (error) {
     if (error.response) {
-      throw error; // ✅ Throw the error instead of returning it
+      console.error("apiaddlist",error)
+      throw error.response.data.status.message||error; // ✅ Throw the error instead of returning it
     } else {
       throw new Error("Something went wrong. Please try again.");
     }
   }
 };
-export const updateListingFunction = async ( formData ) => {
-  console.log("apiaddlist",formData)
+export const updateListingFunction = async (formData) => {
+  console.log("apiaddlist", formData);
+
   try {
-    const response = await axios.put(EDIT_LISTING, formData,{
+    const response = await axios.post(EDIT_LISTING, formData, {
       withCredentials: true, // ✅ Ensures cookies are sent with the request
     });
+
+    console.log(response, "responseUday");
     return response;
   } catch (error) {
     if (error.response) {
-      throw error; // ✅ Throw the error instead of returning it
+      // ✅ Extract actual error message from API response
+      const errorMessage =
+        error.response.data.status.message||error;
+
+      console.error("API Error:", errorMessage);
+      throw new Error(errorMessage); // ✅ Throw actual API error message
     } else {
       throw new Error("Something went wrong. Please try again.");
     }

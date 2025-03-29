@@ -30,13 +30,13 @@ import { useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import {
   validationSchema,
-  fetchNearByPlacesValidationSchema,
+ 
 } from "../utils/validationSchemas";
 import { getConfiguration, getLocationFromZip } from "../network/generalApi";
 import { getPlacesNearListing } from "../network/spaceShare";
 import { addListingFunction, updateListingFunction } from "../network/ListingThunk";
 import { toast } from 'react-toastify';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const { Country, State, City } = require("country-state-city");
 
@@ -89,7 +89,8 @@ export default function AddListing() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const countries = Country.getAllCountries();
-
+  const navigate=useNavigate()
+console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
   const CONFIGKEYS = [
     "roommatePreferencesOptions",
     "foodPreferencesOptions",
@@ -160,15 +161,15 @@ export default function AddListing() {
     foodPreferences: [],
     configurationHouse: {
       bedrooms: {
-        number: 1,
+        number: 0,
         required: true,
       },
       bathrooms: {
-        number: 1,
+        number: 0,
         required: true,
       },
       kitchen: {
-        number: 1,
+        number: 0,
         required: true,
       },
       balcony: {
@@ -576,6 +577,7 @@ export default function AddListing() {
       let current = validationErrors;
       
       for (let i = 0; i < path.length - 1; i++) {
+        console.log(err.message,"errr0")
         if (!current[path[i]]) {
           current[path[i]] = {};
         }
@@ -583,6 +585,7 @@ export default function AddListing() {
       }
       current[path[path.length - 1]] = err.message;
     });
+    console.log("validation erroor",validationErrors)
     setErrors(validationErrors);
   };
 
@@ -690,25 +693,34 @@ export default function AddListing() {
       console.log("Data before validation:", apiFormData);
 
       // Validate the transformed data
-      const validatedData = await validationSchema.validate(
-        apiFormData,
-        {
-          abortEarly: false,
-        }
-      );
-
-      console.log("Data ready for API:");
+      try {
+        await validationSchema.validate(apiFormData, { abortEarly: false });
+        setErrors(null); // Clear errors if validation passes
+      } catch (err) {
+        handleError(err);
+        toast.error("All Field Required.", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        return // Set errors from Yup
+      }
+      // console.log("Data ready for API:",error);
 
       let response; // Declare response variable
 
       // Make API call based on the current path
-      if (currentPath === "/reswap/web/admin/listings/edit-listing" && row) {
-        response = await updateListingFunction(validatedData);
+      if (currentPath === "/reswap/web/admin/listings/edit-listing") {
+        response = await updateListingFunction(apiFormData);
       } else {
-        response = await addListingFunction(validatedData);
+        response = await addListingFunction(apiFormData);
       }
 
       // Check if response is successful
+      console.log(response,"dataaaaaaaaaaaaaaaaaaaaaaaaa")
       if (response?.data?.status?.code === 200) {
         // Show success toast
         toast.success(response.data.status.message, {
@@ -723,7 +735,7 @@ export default function AddListing() {
         // Optional: Reset form or redirect
         setFormData(initialState);
         // Or redirect to another page
-        // history.push(`/listing/${response.data.body}`);
+        navigate(`/reswap/web/admin/listings`);
       } else {
         // Handle unexpected response structure
         toast.error("Unexpected response from the server.", {
@@ -738,7 +750,8 @@ export default function AddListing() {
 
     } catch (error) {
       if (error.name === "ValidationError") {
-        handleValidationError(error);
+        console.error(error)
+       
       } else {
         // Display error message from the API or a generic error message
         const errorMessage = error.response?.data?.message || error.message || "An error occurred. Please try again.";
@@ -810,9 +823,9 @@ export default function AddListing() {
       };
 
       console.log("addressFormData", addressFormData);
-      await fetchNearByPlacesValidationSchema.validate(addressFormData, {
-        abortEarly: false,
-      });
+      // await fetchNearByPlacesValidationSchema.validate(addressFormData, {
+      //   abortEarly: false,
+      // });
       const response = await getPlacesNearListing(addressFormData);
 
       console.log("fetchNearByPlaces response", response);
@@ -903,8 +916,7 @@ export default function AddListing() {
     }));
     setOpenFurnishingModal(false);
   };
-
-  return (
+ return (
     <GradientBox>
       
       <h1 className="text-2xl font-semibold">Add Listing</h1>
@@ -947,7 +959,7 @@ export default function AddListing() {
               ))}
             </Box>
 
-            {errors.listingType && (
+            {errors?.listingType && (
               <Typography sx={{ color: "error.main", mt: 1 }}>
                 {errors.listingType}
               </Typography>
@@ -1286,7 +1298,7 @@ export default function AddListing() {
 
              <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Food Preferences</InputLabel>
+                  <InputLabel>Food Preferences  <span className="text-red-900">*</span></InputLabel>
                   <Select
                     multiple
                     name="foodPreferences"
@@ -1321,7 +1333,7 @@ export default function AddListing() {
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="Available From"
+                  label="Available From*"
                   name="availableFrom"
                   type="date"
                   InputLabelProps={{ shrink: true }}
@@ -1333,12 +1345,17 @@ export default function AddListing() {
                     },
                   }}
                 />
+                 {errors?.availability?.startDate && (
+                  <Typography sx={{ color: "error.main", mt: 1 }}>
+                    {errors?.availability?.startDate}
+                  </Typography>
+                )}
               </Grid>
 
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="Available Till"
+                  label="Available Till*"
                   name="availableTill"
                   type="date"
                   InputLabelProps={{ shrink: true }}
@@ -1350,7 +1367,14 @@ export default function AddListing() {
                     },
                   }}
                 />
+                  {errors?.availability?.endDate && (
+                  <Typography sx={{ color: "error.main", mt: 1 }}>
+                    {errors?.availability?.endDate}
+                  </Typography>
+                )}
               </Grid>
+              { console.log(errors,"udayyyyyyyyyyyyyyyyyyyy")}
+             
               <Grid item xs={12} md={6}>
                 <FormControlLabel
                   control={
@@ -1374,7 +1398,7 @@ export default function AddListing() {
                     fontWeight: 500 
                   }}
                 >
-                  Number of Bedrooms
+                  Number of Bedrooms  <span className="text-red-900">*</span>
                 </Typography>
                 <ToggleButtonGroup
                   value={formData.configurationHouse?.bedrooms?.number?.toString() || "1"}
@@ -1408,7 +1432,7 @@ export default function AddListing() {
                     fontWeight: 500 
                   }}
                 >
-                  Number of Bathrooms
+                  Number of Bathrooms  <span className="text-red-900">*</span>
                 </Typography>
                 <ToggleButtonGroup
                   value={formData.configurationHouse?.bathrooms?.number?.toString() || "1"}
@@ -1442,7 +1466,7 @@ export default function AddListing() {
                     fontWeight: 500 
                   }}
                 >
-                  Number of Balconies
+                  Number of Balconies <span className="text-red-900">*</span>
                 </Typography>
                 <ToggleButtonGroup
                   value={formData.configurationHouse?.balcony?.number?.toString() || "0"}
@@ -1476,7 +1500,7 @@ export default function AddListing() {
                     fontWeight: 500 
                   }}
                 >
-                  Car Parking
+                  No. Kitchen <span className="text-red-900">*</span>
                 </Typography>
                 <ToggleButtonGroup
                   value={formData.configurationHouse?.parking?.number?.toString() || "0"}
@@ -1488,15 +1512,16 @@ export default function AddListing() {
                   }}
                   fullWidth
                 >
+
                   {["0", "1", "2", "3", "4", "5+"].map((item) => (
                     <ToggleButton key={item} value={item}>
                       {item}
                     </ToggleButton>
                   ))}
                 </ToggleButtonGroup>
-                {errors?.configurationHouse?.parking?.number && (
+                {errors?.configurationHouse?.kitchen?.number && (
                   <FormHelperText error>
-                    {errors.configurationHouse.parking.number}
+                    {errors.configurationHouse.kitchen.number}
                   </FormHelperText>
                 )}
               </Grid>
@@ -1506,7 +1531,7 @@ export default function AddListing() {
                   variant="subtitle1"
                   sx={{ mt: 2, mb: 1, color: "#10552F", fontWeight: 500 }}
                 >
-                  Pets
+                  Pets  <span className="text-red-900">*</span>
                 </Typography>
                 <ToggleButtonGroup
                   value={formData.arePetsAllowed ? "Allowed" : "Not Allowed"}
@@ -1539,7 +1564,7 @@ export default function AddListing() {
                 <Grid item xs={12}>
                   <Box borderRadius="8px" mt={2} p={2} bgcolor="#f0f7f2">
                     <Typography variant="subtitle1" fontWeight="bold">
-                      Pets Include :-
+                      Pets Include :- <span className="text-red-900">*</span>
                     </Typography>
                     {formData.petsAllowed &&
                     Array.isArray(formData.petsAllowed) &&
@@ -1586,7 +1611,7 @@ export default function AddListing() {
                   variant="subtitle1"
                   sx={{ mt: 2, mb: 1, color: "#10552F", fontWeight: 500 }}
                 >
-                  Furnishing Status
+                  Furnishing Status <span className="text-red-900">*</span>
                 </Typography>
                 <ToggleButtonGroup
                   value={formData.furnishing || "Unfurnished"}
@@ -1608,7 +1633,7 @@ export default function AddListing() {
                 <Grid item xs={12}>
                   <Box mt={2} p={2} bgcolor="#f0f7f2" borderRadius="8px">
                     <Typography variant="subtitle1" fontWeight="bold">
-                      Furniture Includes
+                      Furniture Includes  <span className="text-red-900">*</span>
                     </Typography>
                     <Box sx={{ backgroundColor: "#f8f9fa", borderRadius: 2, p: 2 }}>
                       {formData.furniture.map((item) => (
@@ -1631,7 +1656,7 @@ export default function AddListing() {
             </Grid>
             <Box>
               <Typography variant="h6" sx={{ color: "#10552F", mb: 2 }}>
-                Furniture Images (Max 3)
+                Furniture Images (Max 3)  <span className="text-red-900">*</span>
               </Typography>
               <Grid container spacing={2}>
                 {furnitureImages.map((image, index) => (
@@ -1717,6 +1742,11 @@ export default function AddListing() {
                   </Grid>
                 ))}
               </Grid>
+              {errors?.furnitureImages && (
+                  <FormHelperText error>
+                    {errors.furnitureImage}
+                  </FormHelperText>
+                )}
             </Box>
           </Box>
 
@@ -1728,31 +1758,31 @@ export default function AddListing() {
             <TextField
               fullWidth
               margin="normal"
-              label="Expected Rent ($)"
+              label="Expected Rent ($) *"
               name="rentAmount"
               value={formData.rentAmount}
               onChange={handleChange}
               type="number"
-              error={!!errors.rentAmount}
-              helperText={errors.rentAmount}
+              error={!!errors?.price?.rent?.amount}
+              helperText={errors?.price?.rent?.amount}
             />
 
             <TextField
               fullWidth
               margin="normal"
-              label="Security Deposit ($)"
+              label="Security Deposit ($) *"
               name="depositAmount"
               value={formData.depositAmount}
               onChange={handleChange}
               type="number"
-              error={!!errors.depositAmount}
-              helperText={errors.depositAmount}
+              error={!!errors?.price?.deposit?.amount}
+              helperText={errors?.price?.deposit?.amount}
             />
 
             <TextField
               fullWidth
               margin="normal"
-              label="Sublease Transfer Charges ($)"
+              label="Sublease Transfer Charges ($) *"
               name="subleaseCharges"
               value={formData.subleaseCharges}
               onChange={handleChange}
@@ -1762,7 +1792,7 @@ export default function AddListing() {
             <TextField
               fullWidth
               margin="normal"
-              label="Phone Number"
+              label="Phone Number *"
               name="mobile"
               value={formData.mobile}
               onChange={handleChange}
@@ -1789,7 +1819,7 @@ export default function AddListing() {
                   }}
                 />
               }
-              label="Price Negotiable"
+              label="Price Negotiable *"
             />
           </Box>
 
@@ -1798,7 +1828,7 @@ export default function AddListing() {
           {/* Image Preview Grid */}
           <Box>
             <Typography variant="h6" sx={{ color: "#10552F", mb: 2 }}>
-              Property Images (Max 3)
+              Property Images (Max 3) <span className="text-red-900">*</span>
             </Typography>
             <Grid container spacing={2}>
               {unitImages.map((image, index) => (
@@ -1885,6 +1915,9 @@ export default function AddListing() {
           </Box>
 
           <Box sx={{ mt: 2 }}>
+          <Typography variant="h6" sx={{ color: "#10552F", mb: 2 }}>
+Roommate Preferences <span className="text-red-900">*</span>
+            </Typography>
             {roommatePreferencesOptions.map((preference) => (
               <FormControl key={preference.name} fullWidth sx={{ mb: 2 }}>
                 <InputLabel id={`${preference.name}-label`}>{preference.name}</InputLabel>
@@ -1903,8 +1936,15 @@ export default function AddListing() {
                     </MenuItem>
                   ))}
                 </Select>
+                {errors?.roommatePreferences && (
+   <FormHelperText error>
+     {errors.roommatePreferences}
+   </FormHelperText>
+)}
               </FormControl>
             ))}
+           
+
           </Box>
 
           <Box sx={{ display: "flex", justifyContent: "end" }}>
@@ -2232,4 +2272,11 @@ export default function AddListing() {
       </FormCard>
     </GradientBox>
   );
-}
+ 
+
+
+
+
+ 
+ 
+};

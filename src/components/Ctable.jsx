@@ -144,7 +144,7 @@ console.log(pagination,"paginationddddddddddddd")
                     backgroundColor: '#f5f5f5'
                   }
                 }}
-                onClick={() => navigate(`/reswap/web/admin/listing-details/${rowData?.listingId}`)}
+                onClick={() => navigate(`/reswap/web/admin/listings/listing-details/${rowData?.listingId}`)}
               >
                 <TableCell sx={{ fontFamily: "Open Sans" }}>
                   {rowData?.listingId}
