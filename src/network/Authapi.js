@@ -1,38 +1,35 @@
 import axios from "axios";
-// import { CHANGE_PASSWORD, FORGOT_PASSWORD_EMAIL, LOGIN, REGISTRATION, RESET_PASSWORD_EMAIL,cookies } from "../config/endpoints";
 import { LOGOUT } from "../redux/endpoint";
-
+import { handleLogin } from "../utils/useRedirect";
 
 export const userLogout = async () => {
   try {
+    // Call logout API to let server clear HttpOnly cookies
     const response = await axios.get(LOGOUT, {
-      withCredentials: true,
-      validateStatus: (status) => status < 400, // Allow redirects
+      withCredentials: true, // Very important to send cookies
+      validateStatus: (status) => status < 400,
     });
 
     console.log("Logout response:", response);
 
-    // Handle Redirect Based on API Response
-    if (response.status === 302 && response.headers.location) {
-      console.log("Redirecting to:", response.headers.location);
-      window.location.href = response.headers.location; // Use the actual redirect URL
-      window.location.href = "reswap/web/admin/user";
-      return;
-    }
+    // Clear local/session storage (client-side tokens)
+    localStorage.clear();
+    sessionStorage.clear();
 
-    // If no redirect is provided, fallback to a default page
-    return response
+    // Clear any non-HttpOnly cookies (if any)
+    document.cookie.split(";").forEach((cookie) => {
+      const name = cookie.trim().split("=")[0];
+      document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
+    });
+
+    // Redirect to login
+    window.location.href = "/login";
   } catch (error) {
+    handleLogin(error);
     if (axios.isAxiosError(error)) {
-      console.error(
-        "Axios error:",
-        error.response?.data?.message || error.message
-      );
       throw new Error(error.response?.data?.message || "Something went wrong.");
     } else {
       throw new Error("An unexpected error occurred. Please try again.");
     }
   }
 };
-
-

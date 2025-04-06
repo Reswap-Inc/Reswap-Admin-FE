@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
@@ -16,17 +16,39 @@ import AddUser from "./pages/Adduser.js";
 import Usermanagement from "./pages/Usermanagement.js";
 import UserProfile from "./pages/UserProfile.js";
 import ListingOutlet from "./components/ListingOutlet.jsx";
-// import sdk from "matrix-js-sdk";
-// import MatrixChat from "matrix-react-sdk/lib/components/structures/MatrixChat";
+import { messaging } from './utils/firebaseConfig.js';
+import { getToken } from 'firebase/messaging';
+
+
+
 
 const App = () => {
+  const requestPermission = async () => {
+    try {
+      const currentToken = await getToken(messaging, {
+        vapidKey:'BOb7dqz6blHs1j3Kfv8R2aKXanJnne5LAR7zSGRvIWyLBStfhTQ6gO4DgmCdksHm-htPKp3DKu509REy3VB9gZs'
+      });
+      if (currentToken) {
+        console.log('FCM Token:', currentToken);
+        // Send token to your server to send notifications later
+      } else {
+        console.warn('No registration token available. Request permission to generate one.');
+      }
+    } catch (err) {
+      console.error('An error occurred while retrieving token. ', err);
+    }
+  };
+  
+  useEffect(() => {
+    requestPermission();
+  }, []);
   return (
     <div>
       <BrowserRouter>
         <Routes>
           <Route
             path="/"
-            element={<Navigate to="/reswap/web/admin/listings" replace />}
+            element={<Navigate to="/reswap/web/admin/home" replace />}
           />
 
           {/* Login route without Navbar */}
@@ -43,7 +65,7 @@ const App = () => {
             }
           >
             <Route index element={<Navigate to="/login" replace />} />
-            <Route path="listings" element={<ListingOutlet />}>
+            <Route path="home" element={<ListingOutlet />}>
               <Route index element={<Listing />} />{" "}
               {/* ✅ Default component for /listings */}
               <Route path="add-listing" element={<AddListing />} />{" "}

@@ -36,16 +36,18 @@ const MatrixChat = () => {
   // }, []);
  
     return (
-      <div>
-        {/* <img src="/hydrogen/assets/icon.8024c299.png "
-        height={60} width={700}
-        /> */}
-         <iframe
+      <div style={{ width: "100%", height: "100vh" }}>
+      <iframe
         src="/hydrogen/index.html"
-        style={{ width: "100%", height: "100vh", border: "none" }}
+        style={{ width: "100%", height: "100%", overflow: "auto" }}
+        scrolling="auto"
         title="Hydrogen Chat"
-      ></iframe>
-      </div>
+      />
+    </div>
+    
+
+
+    
      
     );
  

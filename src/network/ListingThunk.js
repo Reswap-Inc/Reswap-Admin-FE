@@ -10,6 +10,7 @@ import {
   SEARCH_SPACE_LISTING,
 } from "../redux/endpoint";
 import { toast } from "react-toastify";
+import { handleLogin } from "../utils/useRedirect";
 
 
 export const getListingThunk = createAsyncThunk(
@@ -19,8 +20,10 @@ export const getListingThunk = createAsyncThunk(
       const response = await axios.get(`${GET_LISTING}?listingId=${listingId}`, {
         withCredentials: true,
       });
+
       return response.data;
     } catch (error) {
+      handleLogin(error)
       throw error;
     }
   }
@@ -33,6 +36,7 @@ export const addListingThunk = createAsyncThunk(
       const response = await axios.post(ADD_LISTING, formData);
       return response.data;
     } catch (error) {
+      handleLogin(error)
       return rejectWithValue(handleAxiosError(error));
     }
   }
@@ -46,6 +50,7 @@ export const addListingFunction = async ( formData ) => {
     });
     return response;
   } catch (error) {
+    handleLogin(error)
     if (error.response) {
       console.error("apiaddlist",error)
       throw error.response.data.status.message||error; // ✅ Throw the error instead of returning it
@@ -65,6 +70,7 @@ export const updateListingFunction = async (formData) => {
     console.log(response, "responseUday");
     return response;
   } catch (error) {
+    handleLogin(error)
     if (error.response) {
       // ✅ Extract actual error message from API response
       const errorMessage =
@@ -89,8 +95,8 @@ export const getSearchAlllisting = createAsyncThunk(
         validateStatus: (status) => status < 400, // Accept all success and redirect statuses
       });
 
-      console.log("Response received:", response?.data, response.headers);
-
+      handleLogin(response)
+     
       // Handle Redirects (302)
       if (response.status == 302 && response.headers.location) {
         const redirectUrl = response.headers.location;
@@ -107,7 +113,7 @@ export const getSearchAlllisting = createAsyncThunk(
       return response.data;
     } catch (error) {
       console.error("❌ Error fetching listings:", error);
-
+      handleLogin(error)
       // Extra logging to debug axios errors
       if (axios.isAxiosError(error)) {
         console.error("🛑 Axios error details:", {
@@ -153,6 +159,7 @@ export const approveListing = createAsyncThunk(
 
       return response.data;
     } catch (error) {
+      handleLogin(error)
       console.error("❌ Error fetching listings:", error);
 return error
       // Extra logging to debug axios errors
@@ -172,8 +179,10 @@ export const updateListingThunk = createAsyncThunk(
   async (formData, { rejectWithValue }) => {
     try {
       const response = await axios.put(EDIT_LISTING, formData);
+      handleLogin(response)
       return response.data;
     } catch (error) {
+      handleLogin(error)
       return rejectWithValue(handleAxiosError(error));
     }
   }
@@ -187,8 +196,10 @@ export const deleteListingThunk = createAsyncThunk(
   async (id, { rejectWithValue }) => {
     try {
       const response = await axios.delete(`${DELETE_LISTING}/${id}`);
+      handleLogin(response)
       return response.data;
     } catch (error) {
+      handleLogin(error)
       return rejectWithValue(handleAxiosError(error));
     }
   }

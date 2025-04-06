@@ -144,7 +144,7 @@ console.log(pagination,"paginationddddddddddddd")
                     backgroundColor: '#f5f5f5'
                   }
                 }}
-                onClick={() => navigate(`/reswap/web/admin/listings/listing-details/${rowData?.listingId}`)}
+                onClick={() => navigate(`/reswap/web/admin/home/listing-details/${rowData?.listingId}`)}
               >
                 <TableCell sx={{ fontFamily: "Open Sans" }}>
                   {rowData?.listingId}
@@ -228,7 +228,7 @@ console.log(pagination,"paginationddddddddddddd")
         <List>
           <ListItem
             button
-            onClick={() => navigate("/reswap/web/admin/listings/edit-listing", { state: { row } })}
+            onClick={() => navigate("/reswap/web/admin/home/edit-listing", { state: { row } })}
           >
             <ListItemIcon>
               <EditIcon />

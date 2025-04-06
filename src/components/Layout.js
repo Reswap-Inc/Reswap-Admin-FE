@@ -9,7 +9,7 @@ export default function Layout() {
         <div className="w-[20%] ">
           <Sidebar />
         </div>
-        <div className="w-full p-2">
+        <div className="w-full p-2 "  style={{ backgroundColor: "#FAFAFA" }}>
           <Outlet />
         </div>
       </section>

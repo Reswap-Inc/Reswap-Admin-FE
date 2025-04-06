@@ -21,6 +21,7 @@ import {
   ListItemText,
   FormHelperText,
   FormGroup,
+  CircularProgress,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
@@ -234,10 +235,11 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
 
   // Populate formData if the current path is the edit listing path
   useEffect(() => {
-    if (currentPath === "/reswap/web/admin/listings/edit-listing" && row) {
+    if (currentPath === "/reswap/web/admin/home/edit-listing" && row) {
       setFormData({
-        listingType: row.listingType,
-        propertyType: row.propertyType,
+        
+        listingType: row?.listingType,
+        propertyType: row?.propertyType,
         unitType: row.unitType,
         roomType: row.roomType,
         title: row.title,
@@ -309,6 +311,8 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
         verifiedBy: row.verifiedBy,
         // Add any other fields you need to populate
       });
+  
+    
     }
   }, [currentPath, row]); // Dependency array includes currentPath and row
 
@@ -673,7 +677,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
               currency: "USD",
             },
           },
-          flexible: formData.price?.flexible || false,
+          flexible: formData.price?.flexible || true,
         },
         availability: {
           startDate: formData.availableFrom
@@ -682,14 +686,107 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
           endDate: formData.availableTill
             ? new Date(formData.availableTill).toISOString()
             : "",
-          flexible: formData.availability?.flexible || false,
+          flexible: formData.availability?.flexible || true,
         },
         currentResidents: formData.roomateDetails || [],
         furnitureImages: formData.furnitureImages || [],
         unitImages: formData.unitImages || [],
       };
       
-
+      const editApiFormData = {
+        listingId:row?.listingId,
+        listingType: formData.listingType || "",
+        propertyType: formData.propertyType || "",
+        unitType: formData.unitType || "",
+        roomType: formData.roomType || "",
+        title: formData.title || "",
+        foodPreferences: formData.foodPreferences ? formData.foodPreferences : [],
+        roommatePreferences: [
+          {
+            key: "Gender",
+            values: preferences.gender
+          },
+          {
+            key: "Ethnicity",
+            values: preferences.ethnicity
+          },
+          {
+            key: "Language",
+            values: preferences.language
+          }
+        ],
+        propertyName: formData.propertyName || null,
+        description: formData.description || "",
+        belongingsIncluded: formData.belongingsIncluded ?? false,
+        saleType: "RSQT00002",
+        arePetsAllowed: formData.petsAllowed === "Allowed",
+        petsAllowed: formData.petsAllowed || [],
+        petsPresent: formData.petsPresent || [],
+        // amenities: formData.amenities || [],
+        utilities: formData.utilities || [],
+        configurationHouse: {
+          bedrooms: {
+            number: parseInt(formData.configurationHouse?.bedrooms?.number) || 0,
+            required: true,
+          },
+          bathrooms: {
+            number: parseInt(formData.configurationHouse?.bathrooms?.number) || 0,
+            required: true,
+          },
+          kitchen: {
+            number: parseInt(formData.configurationHouse?.kitchen?.number) || 0,
+            required: true,
+          },
+          balcony: {
+            number: parseInt(formData.configurationHouse?.balcony?.number) || 0,
+            required: false,
+          },
+        },
+        comesWithFurniture: formData.furnishing !== "Unfurnished",
+        furniture: formData.furniture || [],
+        location: {
+          address: formData.location?.address || "",
+          address2: formData.location?.address2 || "",
+          city: formData.location?.city || "",
+          state: formData.location?.state || "",
+          country: formData.location?.country || "",
+          postalCode: formData.location?.postalCode || "",
+          roomNumber: formData.listingType === "room" ? formData.location?.roomNumber : "",
+          coordinates: {
+            lat: formData.location?.coordinates?.lat || null,
+            lng: formData.location?.coordinates?.lng || null,
+          },
+        },
+        price: {
+          rent: {
+            amount: parseFloat(formData.rentAmount) || 0,
+            currency: "USD",
+          },
+          deposit: {
+            amount: parseFloat(formData.depositAmount) || 0,
+            currency: "USD",
+          },
+          fees: {
+            cleaning: {
+              amount: parseFloat(formData.feesAmount) || 0,
+              currency: "USD",
+            },
+          },
+          flexible: formData.price?.flexible || true,
+        },
+        availability: {
+          startDate: formData.availableFrom
+            ? new Date(formData.availableFrom).toISOString()
+            : "",
+          endDate: formData.availableTill
+            ? new Date(formData.availableTill).toISOString()
+            : "",
+          flexible: formData.availability?.flexible || true,
+        },
+        currentResidents: formData.roomateDetails || [],
+        furnitureImages: formData.furnitureImages || [],
+        unitImages: formData.unitImages || [],
+      };
       console.log("Data before validation:", apiFormData);
 
       // Validate the transformed data
@@ -713,8 +810,8 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
       let response; // Declare response variable
 
       // Make API call based on the current path
-      if (currentPath === "/reswap/web/admin/listings/edit-listing") {
-        response = await updateListingFunction(apiFormData);
+      if (currentPath === "/reswap/web/admin/home/edit-listing") {
+        response = await updateListingFunction(editApiFormData);
       } else {
         response = await addListingFunction(apiFormData);
       }
@@ -735,7 +832,8 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
         // Optional: Reset form or redirect
         setFormData(initialState);
         // Or redirect to another page
-        navigate(`/reswap/web/admin/listings`);
+        navigate(`/reswap/web/admin/home`);
+        setIsLoading(false)
       } else {
         // Handle unexpected response structure
         toast.error("Unexpected response from the server.", {
@@ -746,6 +844,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
           pauseOnHover: true,
           draggable: true,
         });
+        setIsLoading(false)
       }
 
     } catch (error) {
@@ -919,7 +1018,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
  return (
     <GradientBox>
       
-      <h1 className="text-2xl font-semibold">Add Listing</h1>
+      <h1 className="text-2xl font-semibold"> {currentPath === "/reswap/web/admin/home/edit-listing"?"Edit Listing":"Add Listing"}</h1>
       <FormCard>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {/* Basic Details Section */}
@@ -984,13 +1083,13 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
                     textTransform: "none",
                     fontSize: "14px",
                     backgroundColor:
-                      formData.propertyType === type?.id ? "#23BB67" : "white",
+                      formData?.propertyType === type?.id ? "#23BB67" : "white",
                     color:
-                      formData.propertyType === type?.id ? "white" : "#10552F",
-                    border: `1px solid ${formData.propertyType === type?.id ? "#23BB67" : "#10552F"}`,
+                      formData?.propertyType === type?.id ? "white" : "#10552F",
+                    border: `1px solid ${formData?.propertyType === type?.id ? "#23BB67" : "#10552F"}`,
                     "&:hover": {
                       backgroundColor:
-                        formData.propertyType === type?.id
+                        formData?.propertyType === type?.id
                           ? "#10552F"
                           : "rgba(35, 187, 103, 0.1)",
                     },
@@ -1001,9 +1100,9 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
               ))}
             </Box>
 
-            {errors.propertyType && (
+            {errors?.propertyType && (
               <Typography sx={{ color: "error.main", mt: 1 }}>
-                {errors.propertyType}
+                {errors?.propertyType}
               </Typography>
             )}
 
@@ -1039,7 +1138,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
               ))}
             </Box>
 
-            {errors.unitType && (
+            {errors?.unitType && (
               <Typography sx={{ color: "error.main", mt: 1 }}>
                 {errors.unitType}
               </Typography>
@@ -1081,7 +1180,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
                   ))}
                 </Box>
 
-                {errors.roomType && (
+                {errors?.roomType && (
                   <Typography sx={{ color: "error.main", mt: 1 }}>
                     {errors.roomType}
                   </Typography>
@@ -1096,8 +1195,8 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
               name="title"
               value={formData.title}
               onChange={handleChange}
-              error={!!errors.title}
-              helperText={errors.title}
+              error={!!errors?.title}
+              helperText={errors?.title}
             />
 
             <TextField
@@ -1107,8 +1206,8 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
               name="description"
               value={formData.description}
               onChange={handleChange}
-              error={!!errors.description}
-              helperText={errors.description}
+              error={!!errors?.description}
+              helperText={errors?.description}
             />
 
             {/* Location Details */}
@@ -1124,8 +1223,8 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
                   name="location.postalCode"
                   value={formData.location.postalCode}
                   onChange={handleChange}
-                  error={!!errors.location?.postalCode}
-                  helperText={errors.location?.postalCode}
+                  error={!!errors?.location?.postalCode}
+                  helperText={errors?.location?.postalCode}
                   sx={{
                     "& .MuiOutlinedInput-root": {
                       height: "56px",
@@ -1157,7 +1256,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
                         },
                       }}
                       InputLabelProps={{
-                        shrink: !!formData.location.country,
+                        shrink: !!formData?.location.country,
                       }}
                     />
                   </span>
@@ -1217,7 +1316,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
                         },
                       }}
                       InputLabelProps={{
-                        shrink: !!formData.location.city,
+                        shrink: !!formData?.location.city,
                       }}
                     />
                   </span>
@@ -1959,7 +2058,7 @@ Roommate Preferences <span className="text-red-900">*</span>
                 py: 1,
               }}
             >
-              Submit Listing
+             { isLoading?<div> submitting...<CircularProgress /></div>:"Submit Listing"}
             </Button>
           </Box>
         </Box>

@@ -5,16 +5,49 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import { userLogout } from "../network/Authapi";
+import {
+
+  Popper,
+  Paper,
+  List,
+  ListItem,
+  ListItemText,
+  Box
+} from '@mui/material';
+
+
+
+import { onMessage } from 'firebase/messaging';
+import { messaging } from './../utils/firebaseConfig';// Your initialized messaging object
 
 const Navbar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [currentRoute, setCurrentRoute] = useState("");
+  const [notificationCount, setNotificationCount] = useState(0);
+const [messages, setMessages] = useState([]);
+const [dropdownOpen, setDropdownOpen] = useState(false);
+
   const navigate = useNavigate();
 
   const token = sessionStorage.getItem("iptoken");
   const userData = JSON.parse(sessionStorage.getItem("userData"));
 
+
+  useEffect(() => {
+    const unsubscribe = onMessage(messaging, (payload) => {
+      console.log("Message received in foreground: ", payload);
+  
+      setNotificationCount(prev => prev + 1);
+      setMessages(prev => [...prev, payload.notification]);
+  
+      // alert(payload.notification.title + ' - ' + payload.notification.body);
+    });
+  
+    return () => unsubscribe(); // Clean up
+  }, []);
+  
+  
   // Add this useEffect to update route name
   useEffect(() => {
     const path = window.location.pathname;
@@ -66,7 +99,7 @@ const Navbar = () => {
     <header className="bg-white border-b">
       <div className="mr-2 flex h-16 items-center px-4 bg-white w-full justify-between">
         <div className="flex items-center gap-4">
-          <Link to="/dashboard" className="flex items-center gap-2">
+          <Link to="/reswap/web/admin/home" className="flex items-center gap-2">
             <img
               src="/rlogo.png"
               alt="BigTrader Logo"
@@ -102,7 +135,7 @@ const Navbar = () => {
             }}
           >
             {/* Add Notification Icon */}
-            <IconButton
+            {/* <IconButton
               size="large"
               aria-label="show notifications"
               color="inherit"
@@ -111,7 +144,53 @@ const Navbar = () => {
               <Badge badgeContent={4} color="error">
                 <NotificationsIcon sx={{ color: "gray" }} />
               </Badge>
-            </IconButton>
+            </IconButton> */}
+
+
+<Box
+  onMouseEnter={() => setDropdownOpen(true)}
+  onMouseLeave={() => setDropdownOpen(false)}
+  sx={{ position: "relative", display: "inline-block" }}
+>
+  <IconButton
+    size="large"
+    aria-label="show notifications"
+    color="inherit"
+    sx={{ marginRight: 2 }}
+  >
+    <Badge badgeContent={notificationCount} color="error">
+      <NotificationsIcon sx={{ color: "gray" }} />
+    </Badge>
+  </IconButton>
+
+  {dropdownOpen && messages.length > 0 && (
+    <Paper
+      sx={{
+        position: "absolute",
+        top: "100%",
+        right: 0,
+        zIndex: 10,
+        width: 300,
+        maxHeight: 300,
+        overflowY: "auto",
+        boxShadow: 3,
+        mt: 1
+      }}
+    >
+      <List>
+        {messages.map((msg, index) => (
+          <ListItem key={index}>
+            <ListItemText
+              primary={msg.title}
+              secondary={msg.body}
+            />
+          </ListItem>
+        ))}
+      </List>
+    </Paper>
+  )}
+</Box>
+
 
             <div onClick={handleProfileClick} style={{ display: 'flex', alignItems: 'center' }}>
             <Typography sx={{ color: "gray", marginLeft: 1 }}>

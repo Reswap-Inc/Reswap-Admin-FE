@@ -119,14 +119,15 @@ const Listing = () => {
   };
 
   return (
-    <div style={{ backgroundColor: "#FAF9F6" }}>
+    <div style={{ backgroundColor: "#FAFAFA" }}>
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
           py: "1rem",
-          width:"98%"
+          width: "98%",
+          padding:2
         }}
       >
         {/* Left side - Search bar */}
@@ -169,7 +170,8 @@ const Listing = () => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          py: "1rem",
+          px: "1rem",
+
         }}
       >
         {/* Left side - Search bar */}
@@ -221,7 +223,7 @@ const Listing = () => {
 
           {/* Add Button */}
           <AddButton
-            onClick={() => navigate("/reswap/web/admin/listings/add-listing")}
+            onClick={() => navigate("/reswap/web/admin/home/add-listing")}
             bgColor="#5CBA47"
             textColor="#1C1C1C"
             startIcon={<AddIcon />}
@@ -231,14 +233,16 @@ const Listing = () => {
         </Box>
       </Box>
       {!loading ? (
-        <Ctable
-          tableHead={tableHead}
-          rowData={listings?.body}
-          pagination={listings?.pagination}
-          setRowsPerPage={setRowsPerPage}
-          setPage={setPage}
-          fordispatch={setSearchQuery}
-        />
+        <Box sx={{ p: 2 }}> {/* pr = padding right */}
+          <Ctable
+            tableHead={tableHead}
+            rowData={listings?.body}
+            pagination={listings?.pagination}
+            setRowsPerPage={setRowsPerPage}
+            setPage={setPage}
+            fordispatch={setSearchQuery}
+          />
+        </Box>
       ) : (
         <Box
           sx={{
@@ -251,6 +255,7 @@ const Listing = () => {
           <CircularProgress />
         </Box>
       )}
+
 
       {error && (
         <Box

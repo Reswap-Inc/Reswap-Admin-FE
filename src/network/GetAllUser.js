@@ -1,6 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 import { ADD_LISTING, BAN_USER, cookies, DELETE_LISTING, EDIT_LISTING, GET_ALL_USER, GET_LISTING, SEARCH_SPACE_LISTING } from "../redux/endpoint";
+import { handleLogin } from "../utils/useRedirect";
 
 /**
  * Get Listings Thunk
@@ -14,6 +15,7 @@ export const getListingThunk = createAsyncThunk(
       });
       return response.data;
     } catch (error) {
+      handleLogin(error)
       throw error;
     }
   }
@@ -29,6 +31,7 @@ export const banUser = createAsyncThunk(
       const response = await axios.post(BAN_USER, formData);
       return response.data;
     } catch (error) {
+      handleLogin(error)
       return rejectWithValue(handleAxiosError(error));
     }
   }
@@ -40,6 +43,7 @@ export const addListingThunk = createAsyncThunk(
       const response = await axios.post(ADD_LISTING, formData);
       return response.data;
     } catch (error) {
+      handleLogin(error)
       return rejectWithValue(handleAxiosError(error));
     }
   }
@@ -86,7 +90,7 @@ export const getAllUserThunk = createAsyncThunk(
       return response.data;
     } catch (error) {
       console.error("Error fetching listings:", error);
-
+      handleLogin(error)
       // Handle errors better
       return rejectWithValue(
         "An error occurred while fetching data."
@@ -106,6 +110,7 @@ export const updateListingThunk = createAsyncThunk(
       const response = await axios.put(EDIT_LISTING, formData);
       return response.data;
     } catch (error) {
+      handleLogin(error)
       return rejectWithValue(handleAxiosError(error));
     }
   }
@@ -121,6 +126,7 @@ export const deleteListingThunk = createAsyncThunk(
       const response = await axios.delete(`${DELETE_LISTING}/${id}`);
       return response.data;
     } catch (error) {
+      handleLogin(error)
       return rejectWithValue(handleAxiosError(error));
     }
   }

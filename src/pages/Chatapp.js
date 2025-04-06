@@ -201,7 +201,7 @@ const Chatapp = () => {
   const [selectedFile, setSelectedFile] = useState(null);
 
   return (
-    <div className="flex h-screen width-full bg-gray-100">
+    <div className="flex h-auto width-full bg-gray-100 overflow-y-auto">
     
 {/* <iframe src="https://app.element.io/#/login" width="100%" height="auto" /> */}
 {/* <iframe src="http://localhost:3000/#/login" width="100%" height="auto" /> */}

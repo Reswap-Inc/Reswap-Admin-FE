@@ -144,7 +144,7 @@ console.log("bannnnnnnnnnnnn",res)
   }, [dispatch, page, rowsPerPage, searchParam]);
 
   return (
-    <Box p={2}>
+    <Box p={2} style={{ backgroundColor: "#FAFAFA" }}>
       <Box display="flex" justifyContent="space-between" alignItems="center" py={2}>
 
         <Box></Box>

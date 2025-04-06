@@ -83,7 +83,7 @@ import {
 
 export const navItems = [
   {
-    path: "/reswap/web/admin/listings", // main path for listing
+    path: "/reswap/web/admin/home", // main path for listing
     icon: MdPeople,
     title: "Listing",
   },
