@@ -129,6 +129,11 @@ const ListingDetails = () => {
             {property?.title}
           </Typography>
 
+          {/* Property Description */}
+          <Typography variant="body1" mt={2}>
+            {property?.description}
+          </Typography>
+
           {/* Rent and Deposit */}
           <Grid container spacing={2} mt={2}>
             <Grid item>
@@ -156,13 +161,51 @@ const ListingDetails = () => {
             {`${property?.location?.address}, ${property?.location?.city}, ${property?.location?.state}, ${property?.location?.country}`}
           </Typography>
 
+          {/* Utilities */}
+          <Typography variant="h6" mt={3}>
+            Utilities
+          </Typography>
+          <List>
+            {property?.utilities?.map((utility, index) => (
+              <ListItem key={index}>
+                {utility.name} {utility.included ? "(Included)" : "(Not Included)"}
+              </ListItem>
+            ))}
+          </List>
+
           {/* Amenities */}
           <Typography variant="h6" mt={3}>
             Amenities
           </Typography>
           <List>
-            {property?.amenities?.map((item, index) => (
-              <ListItem key={index}>{item.name}</ListItem>
+            {property?.amenities?.map((amenity, index) => (
+              <ListItem key={index}>
+                <Typography variant="subtitle1">{amenity.name || "---"}</Typography>
+              </ListItem>
+            ))}
+          </List>
+
+          {/* Roommate Preferences */}
+          <Typography variant="h6" mt={3}>
+            Roommate Preferences
+          </Typography>
+          <List>
+            {property?.roommatePreferences?.map((item, index) => (
+              <ListItem key={index}>
+                <Typography variant="subtitle1" fontWeight="bold">
+                  {item.key}: {item.values.join(", ") || "Any"}
+                </Typography>
+              </ListItem>
+            ))}
+          </List>
+
+          {/* Food Preferences */}
+          <Typography variant="h6" mt={3}>
+            Food Preferences
+          </Typography>
+          <List>
+            {property?.foodPreferences?.map((item, index) => (
+              <ListItem key={index}>{item}</ListItem>
             ))}
           </List>
 
@@ -176,163 +219,35 @@ const ListingDetails = () => {
             ))}
           </List>
 
-          {/* Roommate Preferences */}
+          {/* Configuration House */}
           <Typography variant="h6" mt={3}>
-            Roommate Preferences
+            Configuration
           </Typography>
           <List>
-  {property?.roommatePreferences?.map((item, index) => (
-    <ListItem
-      key={index}
-      sx={{
-        backgroundColor: "#f9f9f9",
-        borderRadius: "12px",
-        marginBottom: "8px",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-      }}
-    >
-      <ListItemIcon>
-        <CheckCircleIcon style={{ color: "#4caf50" }} />
-      </ListItemIcon>
-      <ListItemText
-        primary={
-          <Typography variant="subtitle1" fontWeight="bold">
-            {item.key}
-          </Typography>
-        }
-        secondary={
-          <Typography variant="body2" color="textSecondary">
-            {item.values}
-          </Typography>
-        }
-      />
-    </ListItem>
-  ))}
-</List>
-
-
-          {/* Food Preferences */}
-          <Typography variant="h6" mt={3}>
-            Food Preferences
-          </Typography>
-          <List>
-            {property?.foodPreferences?.map((item, index) => (
-              <ListItem key={index}>{item}</ListItem>
-            ))}
+            <ListItem>
+              <Typography variant="subtitle1" fontWeight="bold">
+                Bedrooms: {property?.configurationHouse?.bedrooms?.number}
+              </Typography>
+            </ListItem>
+            <ListItem>
+              <Typography variant="subtitle1" fontWeight="bold">
+                Bathrooms: {property?.configurationHouse?.bathrooms?.number}
+              </Typography>
+            </ListItem>
+            <ListItem>
+              <Typography variant="subtitle1" fontWeight="bold">
+                Balconies: {property?.configurationHouse?.balcony?.number}
+              </Typography>
+            </ListItem>
+            <ListItem>
+              <Typography variant="subtitle1" fontWeight="bold">
+                Kitchen: {property?.configurationHouse?.kitchen?.number}
+              </Typography>
+            </ListItem>
           </List>
         </CardContent>
       </Card>
     </Container>
-    //   <Container maxWidth="lg">
-    //      <Box
-    //   textAlign="center"
-    //   mb={2}
-    //   display="flex"
-    //   flexDirection="column"
-    //   alignItems="center"
-    // >
-    //   <img
-    //     src="https://plus.unsplash.com/premium_photo-1664474619075-644dd191935f?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8aW1hZ2V8ZW58MHx8MHx8fDA%3D"
-    //     alt="profile"
-    //     style={{
-    //       borderRadius: '50%',
-    //       width: '150px',
-    //       height: '150px',
-    //       objectFit: 'cover'
-    //     }}
-    //   />
-    //   <Typography variant="h4" mt={2}>{property.name}</Typography>
-    //   <Typography variant="body1" color="textSecondary">
-    //     {property.members} Members
-    //   </Typography>
-    // </Box>
-    //     <AppBar position="static" color="default">
-    //       <Tabs
-    //         value={tabValue}
-    //         onChange={(e, newValue) => setTabValue(newValue)}
-    //         indicatorColor="primary"
-    //         textColor="primary"
-    //         variant="fullWidth"
-    //       >
-    //         <Tab label="Property Detail" />
-    //         <Tab label={`Members (${property.members})`} />
-    //       </Tabs>
-    //     </AppBar>
-
-    //     <Box mt={2}>
-    //       <Typography variant="h5">Property Images</Typography>
-    //       <Grid container spacing={2}>
-    //         {property.images.map((img, index) => (
-    //           <Grid item xs={12} sm={6} md={3} key={index}>
-    //             <Card>
-    //               <CardMedia component="img" image={img} alt={`Property ${index}`} />
-    //             </Card>
-    //           </Grid>
-    //         ))}
-    //       </Grid>
-    //     </Box>
-
-    //     <Box mt={2}>
-    //       <Typography variant="h5">Location Details</Typography>
-    //       <Typography variant="body1">{property.location}</Typography>
-    //       <Button startIcon={<LocationOnIcon />} variant="contained" color="primary" sx={{ mt: 1 }}>
-    //         Directions
-    //       </Button>
-    //     </Box>
-
-    //     <Box mt={2}>
-    //       <Typography variant="h5">Places near you</Typography>
-    //       {property.placesNearby.map((place, index) => (
-    //         <Typography key={index} variant="body1" color="textSecondary">
-    //           {place.name} - {place.distance}
-    //         </Typography>
-    //       ))}
-    //     </Box>
-
-    //     <Box mt={2}>
-    //       <Typography variant="h5">Roommate Preferences</Typography>
-    //       <List>{property.roommatePreferences.map((item, index) => <ListItem key={index}>{item}</ListItem>)}</List>
-    //     </Box>
-
-    //     <Box mt={2}>
-    //       <Typography variant="h5">Roommate Food Preferences</Typography>
-    //       <List>{property.foodPreferences.map((item, index) => <ListItem key={index}>{item}</ListItem>)}</List>
-    //     </Box>
-
-    //     <Box mt={2}>
-    //       <Typography variant="h5">Pets Included</Typography>
-    //       <List>{property.petsIncluded.map((item, index) => <ListItem key={index}>{item}</ListItem>)}</List>
-    //     </Box>
-
-    //     <Box mt={2}>
-    //       <Typography variant="h5">Property Details</Typography>
-    //       <Typography variant="body1">Bedrooms: {property.bedrooms}, Bathrooms: {property.bathrooms}, Balconies: {property.balconies}, Car Parkings: {property.carParkings}</Typography>
-    //     </Box>
-
-    //     <Box mt={2}>
-    //       <Typography variant="h5">Building Amenities</Typography>
-    //       <List>{property.amenities.map((item, index) => <ListItem key={index}>{item}</ListItem>)}</List>
-    //     </Box>
-
-    //     <Box mt={2}>
-    //       <Typography variant="h5">Furniture Details</Typography>
-    //       <List>{property.furnitureDetails.map((item, index) => <ListItem key={index}>{item}</ListItem>)}</List>
-    //     </Box>
-
-    //     <Box mt={2}>
-    //       <Typography variant="h5">Lease Duration</Typography>
-    //       <Typography variant="body1">{property.leaseDuration}</Typography>
-    //     </Box>
-
-    //     <Box mt={2} display="flex" justifyContent="space-between">
-    //       <Button variant="contained" startIcon={<AttachMoneyIcon />} color="success">
-    //         Rent: ${property.rent}
-    //       </Button>
-    //       <Button variant="contained" startIcon={<AttachMoneyIcon />} color="warning">
-    //         Deposit: ${property.deposit}
-    //       </Button>
-    //     </Box>
-    //   </Container>
   );
 };
 

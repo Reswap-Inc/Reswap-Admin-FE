@@ -285,8 +285,8 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
         rentAmount: row.price.rent.amount,
         depositAmount: row.price.deposit.amount,
         feesAmount: row.price.fees.cleaning.amount,
-        petsAllowed: row.petsAllowed,
-        petsPresent: row.petsPresent,
+        petsAllowed: row.petsAllowed?.map(pet => pet.id), // Extract only the IDs
+        petsPresent: row.petsPresent?.map(pet => pet.id),
         roommatePreferences: row.roommatePreferences,
         foodPreferences: row.foodPreferences,
         configurationHouse: {
@@ -323,8 +323,8 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
         furnitureImages: row.furnitureImages,
         unitImages: row.unitImages,
         availability: {
-          startDate: row.availability.startDate,
-          endDate: row.availability.endDate,
+          startDate: row?.availability?.startDate,
+          endDate: row?.availability?.endDate,
           flexible: row.availability?.flexible,
         },
         currentResidents: row.currentResidents,
@@ -801,12 +801,10 @@ console.log("funimage============",funImage)
           flexible: formData.price?.flexible || true,
         },
         availability: {
-          startDate: formData.availableFrom
-            ? new Date(formData.availableFrom).toISOString()
-            : "",
-          endDate: formData.availableTill
-            ? new Date(formData.availableTill).toISOString()
-            : "",
+          startDate: formData?.availability?.startDate
+            ,
+          endDate: formData?.availability?.endDate
+           ,
           flexible: formData.availability?.flexible || true,
         },
         currentResidents: formData.roomateDetails || [],
