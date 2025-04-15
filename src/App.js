@@ -48,15 +48,15 @@ const App = () => {
         <Routes>
           <Route
             path="/"
-            element={<Navigate to="/reswap/web/admin/home" replace />}
+            element={<Navigate to="/web/admin/home" replace />}
           />
 
           {/* Login route without Navbar */}
-          <Route path="/reswap/web/admin/login" element={<LoginPage />} />
+          <Route path="/web/admin/login" element={<LoginPage />} />
 
           {/* Protected routes with Navbar */}
           <Route
-            path="/reswap/web/admin/"
+            path="/web/admin/"
             element={
               <>
                 <Navbar />
@@ -87,6 +87,7 @@ const App = () => {
             <Route path="user" element={<Usermanagement />} />
             <Route path="user-profile" element={<UserProfile />} />
             <Route path="admin-chat" element={<ChatApp />} />
+            <Route path="*" element={<Navigate to="/web/admin/home" replace />} />
           </Route>
         </Routes>
       </BrowserRouter>

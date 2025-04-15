@@ -53,18 +53,46 @@
 
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { navItems } from "../data/navConfig";
+import {
+ 
+  MdPeople,
+ 
+  MdChat,
+ 
+} from "react-icons/md";
+import { useSelector } from "react-redux";
 
 const Sidebar = () => {
   const activeLink =
     "flex items-center gap-5 pl-4 pt-3 pb-2.5 rounded-lg text-white bg-maincolor text-md m-2";
   const normalLink =
     "flex items-center gap-5 pl-4 pt-3 pb-2.5 rounded-lg text-md text-maincolor bg-white m-2";
-
+    const profile=useSelector((state)=>state.getProfileSlice?.data?.data)
+ const menuItems = [
+    {
+      path: "/web/admin/home",
+      icon: MdPeople,
+      title: "Listing",
+    },
+    ...(profile?.params?.Roles
+      ? [
+          {
+            path: "/web/admin/user",
+            icon: MdPeople,
+            title: "User Management",
+          },
+        ]
+      : []),
+    {
+      path: "/web/admin/admin-chat",
+      icon: MdChat,
+      title: "Admin Chat",
+    },
+  ];
   return (
     <div className="h-screen md:overflow-hidden overflow-auto md:hover:overflow-auto bg-white">
       <div>
-        {navItems.map((link) => (
+        {menuItems.map((link) => (
           <div key={link.title}>
             <NavLink
               to={link.path}

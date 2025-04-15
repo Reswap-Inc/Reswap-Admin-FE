@@ -110,6 +110,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
     []
   );
   const [foodPreferencesOptions, setFoodPreferencesOptions] = useState([]);
+  const [amenitiesOptions, setamenitiesOptions] = useState([]);
   const [popularPlaces, setPopularPlaces] = useState([]);
 
   const [amenities, setAmenities] = useState([]);
@@ -131,7 +132,30 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
     language: []
   });
   const furnishingItems = furniture;
-
+  const convertImageUrlToBase64 = async (url) => {
+    const response = await fetch(url);
+    const blob = await response.blob();
+  console.log("blocbbbbbbbbbbbbbbbbbbbbbbbbbb",blob)
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+  
+  const convertFurnitureImagesToBase64 = async (imageUrls) => {
+    try {
+      return await Promise.all(
+        imageUrls.map(url => convertImageUrlToBase64(url))
+      );
+    } catch (error) {
+      console.error("Error converting images:", error);
+      return [];
+    }
+  };
+  
+  
   const initialState = {
     listingType: "unit",
     propertyType: "",
@@ -235,7 +259,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
 
   // Populate formData if the current path is the edit listing path
   useEffect(() => {
-    if (currentPath === "/reswap/web/admin/home/edit-listing" && row) {
+    if (currentPath === "/web/admin/home/edit-listing" && row) {
       setFormData({
         
         listingType: row?.listingType,
@@ -597,7 +621,9 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
     try {
       setIsLoading(true);
       setErrors({});
-
+const funImage=await convertFurnitureImagesToBase64(formData.furnitureImages)
+const unitImage= await convertFurnitureImagesToBase64(formData.unitImages)
+console.log("funimage============",funImage)
       // Transform form data to match API format
       const apiFormData = {
         listingType: formData.listingType || "",
@@ -722,7 +748,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
         arePetsAllowed: formData.petsAllowed === "Allowed",
         petsAllowed: formData.petsAllowed || [],
         petsPresent: formData.petsPresent || [],
-        // amenities: formData.amenities || [],
+        amenities: formData.amenities || [],
         utilities: formData.utilities || [],
         configurationHouse: {
           bedrooms: {
@@ -784,35 +810,37 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
           flexible: formData.availability?.flexible || true,
         },
         currentResidents: formData.roomateDetails || [],
-        furnitureImages: formData.furnitureImages || [],
-        unitImages: formData.unitImages || [],
+        furnitureImages:funImage  || [],
+        unitImages: unitImage || [],
       };
       console.log("Data before validation:", apiFormData);
 
       // Validate the transformed data
-      try {
-        await validationSchema.validate(apiFormData, { abortEarly: false });
-        setErrors(null); // Clear errors if validation passes
-      } catch (err) {
-        handleError(err);
-        toast.error("All Field Required.", {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
-        return // Set errors from Yup
-      }
+    
       // console.log("Data ready for API:",error);
 
       let response; // Declare response variable
 
       // Make API call based on the current path
-      if (currentPath === "/reswap/web/admin/home/edit-listing") {
+      if (currentPath === "/web/admin/home/edit-listing") {
         response = await updateListingFunction(editApiFormData);
       } else {
+
+        try {
+          await validationSchema.validate(apiFormData, { abortEarly: false });
+          setErrors(null); // Clear errors if validation passes
+        } catch (err) {
+          handleError(err);
+          toast.error("All Field Required.", {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+          return // Set errors from Yup
+        }
         response = await addListingFunction(apiFormData);
       }
 
@@ -832,7 +860,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
         // Optional: Reset form or redirect
         setFormData(initialState);
         // Or redirect to another page
-        navigate(`/reswap/web/admin/home`);
+        navigate(`/web/admin/home`);
         setIsLoading(false)
       } else {
         // Handle unexpected response structure
@@ -1018,7 +1046,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
  return (
     <GradientBox>
       
-      <h1 className="text-2xl font-semibold"> {currentPath === "/reswap/web/admin/home/edit-listing"?"Edit Listing":"Add Listing"}</h1>
+      <h1 className="text-2xl font-semibold"> {currentPath === "/web/admin/home/edit-listing"?"Edit Listing":"Add Listing"}</h1>
       <FormCard>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {/* Basic Details Section */}
@@ -1198,10 +1226,22 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
               error={!!errors?.title}
               helperText={errors?.title}
             />
+            <TextField
+              fullWidth
+              margin="normal"
+              label="PropertyName"
+              name="propertyName"
+              value={formData.propertyName}
+              onChange={handleChange}
+              error={!!errors?.propertyName}
+              helperText={errors?.propertyName}
+            />
 
             <TextField
               fullWidth
               margin="normal"
+              multiline
+              rows={3}
               label="Description"
               name="description"
               value={formData.description}
@@ -1397,15 +1437,15 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
 
              <Grid item xs={12} md={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Food Preferences  <span className="text-red-900">*</span></InputLabel>
+                  <InputLabel>Amenities  <span className="text-red-900">*</span></InputLabel>
                   <Select
                     multiple
-                    name="foodPreferences"
-                    value={formData.foodPreferences || []}
+                    name="amenities"
+                    value={formData.amenities || []}
                     onChange={handleChange}
-                    input={<OutlinedInput label="Food Preferences" />}
+                    input={<OutlinedInput label="amenities" />}
                     renderValue={(selected) => {
-                      return foodPreferencesOptions
+                      return amenities
                         .filter(option => selected.includes(option.id))
                         .map(option => option.name)
                         .join(', ');
@@ -1417,10 +1457,10 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
                       },
                     }}
                   >
-                    {foodPreferencesOptions.map((option) => (
+                    {amenities?.map((option) => (
                       <MenuItem key={option.id} value={option.id}>
                         <Checkbox 
-                          checked={formData.foodPreferences?.indexOf(option.id) > -1} 
+                          checked={formData.amenities?.indexOf(option.id) > -1} 
                         />
                         <ListItemText primary={option.name} />
                       </MenuItem>
@@ -1472,7 +1512,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
                   </Typography>
                 )}
               </Grid>
-              { console.log(errors,"udayyyyyyyyyyyyyyyyyyyy")}
+              {/* { console.log(errors,"udayyyyyyyyyyyyyyyyyyyy")} */}
              
               <Grid item xs={12} md={6}>
                 <FormControlLabel
@@ -2013,7 +2053,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
             </Grid>
           </Box>
 
-          <Box sx={{ mt: 2 }}>
+          {/* <Box sx={{ mt: 2 }}>
           <Typography variant="h6" sx={{ color: "#10552F", mb: 2 }}>
 Roommate Preferences <span className="text-red-900">*</span>
             </Typography>
@@ -2044,7 +2084,7 @@ Roommate Preferences <span className="text-red-900">*</span>
             ))}
            
 
-          </Box>
+          </Box> */}
 
           <Box sx={{ display: "flex", justifyContent: "end" }}>
             <Button

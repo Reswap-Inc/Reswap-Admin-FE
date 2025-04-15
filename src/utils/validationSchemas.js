@@ -7,19 +7,19 @@ export const validationSchema = Yup.object().shape({
 //   roomType: Yup.string().required("Room type is required"),
   title: Yup.string().required("Title is required"),
 
-  foodPreferences: Yup.array().of(Yup.string()).min(1, "At least one food preference is required"),
+  // foodPreferences: Yup.array().of(Yup.string()).min(1, "At least one food preference is required"),
 
-  roommatePreferences: Yup.array()
-    .of(
-      Yup.object().shape({
-        key: Yup.string().required("Preference key is required"),
-        values: Yup.array().of(Yup.string()).min(1, "At least one value is required").required(),
-      })
-    )
-    .min(1, "At least one roommate preference is required")
-    .required(),
+  // roommatePreferences: Yup.array()
+  //   .of(
+  //     Yup.object().shape({
+  //       key: Yup.string().required("Preference key is required"),
+  //       values: Yup.array().of(Yup.string()).min(1, "At least one value is required").required(),
+  //     })
+  //   )
+  //   .min(1, "At least one roommate preference is required")
+  //   .required(),
 
-//   propertyName: Yup.string().required("Property name is required"),
+  propertyName: Yup.string().required("Property name is required"),
   description: Yup.string().required("Description is required"),
 //   belongingsIncluded: Yup.boolean().required("Belongings included field is required"),
 

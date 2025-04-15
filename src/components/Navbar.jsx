@@ -4,7 +4,7 @@ import { Menu, MenuItem, Typography, IconButton, Badge } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import MenuIcon from "@mui/icons-material/Menu";
 import NotificationsIcon from "@mui/icons-material/Notifications";
-import { userLogout } from "../network/Authapi";
+import { getProfile, userLogout } from "../network/Authapi";
 import {
 
   Popper,
@@ -19,6 +19,8 @@ import {
 
 import { onMessage } from 'firebase/messaging';
 import { messaging } from './../utils/firebaseConfig';// Your initialized messaging object
+import { useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 
 const Navbar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -29,11 +31,12 @@ const [messages, setMessages] = useState([]);
 const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const navigate = useNavigate();
-
+const dispatch=useDispatch()
+const profile=useSelector((state)=>state.getProfileSlice?.data?.data)
+console.log(profile,"profilejs=========")
   const token = sessionStorage.getItem("iptoken");
   const userData = JSON.parse(sessionStorage.getItem("userData"));
-
-
+ 
   useEffect(() => {
     const unsubscribe = onMessage(messaging, (payload) => {
       console.log("Message received in foreground: ", payload);
@@ -47,6 +50,14 @@ const [dropdownOpen, setDropdownOpen] = useState(false);
     return () => unsubscribe(); // Clean up
   }, []);
   
+
+  useEffect(()=>{
+    const fetchProfile=async()=>{
+      await dispatch(getProfile())
+    }
+    fetchProfile()
+    sessionStorage.setItem("isAdmin",profile?.custom_fields?.isLeanAdmin)
+  },[dispatch])
   
   // Add this useEffect to update route name
   useEffect(() => {
@@ -70,7 +81,7 @@ const [dropdownOpen, setDropdownOpen] = useState(false);
     try {
       await userLogout();
       // Clear session storage
-      
+     
       // Redirect to login page
       
     } catch (error) {
@@ -99,7 +110,7 @@ const [dropdownOpen, setDropdownOpen] = useState(false);
     <header className="bg-white border-b">
       <div className="mr-2 flex h-16 items-center px-4 bg-white w-full justify-between">
         <div className="flex items-center gap-4">
-          <Link to="/reswap/web/admin/home" className="flex items-center gap-2">
+          <Link to="/web/admin/home" className="flex items-center gap-2">
             <img
               src="/rlogo.png"
               alt="BigTrader Logo"
@@ -194,7 +205,7 @@ const [dropdownOpen, setDropdownOpen] = useState(false);
 
             <div onClick={handleProfileClick} style={{ display: 'flex', alignItems: 'center' }}>
             <Typography sx={{ color: "gray", marginLeft: 1 }}>
-                {userData?.username||"Admin"}
+                {profile?.given_name||"Admin"}
               </Typography>
               <AccountCircleIcon
                 sx={{

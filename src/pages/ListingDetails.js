@@ -20,7 +20,8 @@ import { useSelector } from "react-redux";
 import { getListingThunk } from "../network/ListingThunk";
 import { useDispatch } from "react-redux";
 import { useParams } from "react-router-dom";
-
+import { ListItemIcon, ListItemText} from "@mui/material";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 // const property = {
 //   name: 'UNITi Montroseis',
 //   members: 9,
@@ -74,23 +75,24 @@ const ListingDetails = () => {
         alignItems="center"
       >
         <img
-          src="https://plus.unsplash.com/premium_photo-1664474619075-644dd191935f?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8aW1hZ2V8ZW58MHx8MHx8fDA%3D"
-          alt="profile"
+          src={property?.unitImages?.[0]}
           style={{
             borderRadius: "50%",
             width: "150px",
             height: "150px",
             objectFit: "cover",
+            border: "2px solid #000" // You can change color and width as needed
           }}
         />
+
         <Typography variant="h4" mt={2}>
           {property?.propertyName}
         </Typography>
-        <Typography variant="body1" color="textSecondary">
+        {/* <Typography variant="body1" color="textSecondary">
           {property?.members} Members
-        </Typography>
+        </Typography> */}
       </Box>
-      <AppBar position="static" color="default">
+      {/* <AppBar position="static" color="default">
         <Tabs
           value={tabValue}
           onChange={(e, newValue) => setTabValue(newValue)}
@@ -101,7 +103,7 @@ const ListingDetails = () => {
           <Tab label="Property Detail" />
           <Tab label={`Members (${property?.members})`} />
         </Tabs>
-      </AppBar>
+      </AppBar> */}
 
       <Box mt={2}>
         <Typography variant="h5">Property Images</Typography>
@@ -179,12 +181,35 @@ const ListingDetails = () => {
             Roommate Preferences
           </Typography>
           <List>
-            {property?.roommatePreferences?.map((item, index) => (
-              <ListItem key={index}>
-                {item.key}:{item.values}
-              </ListItem>
-            ))}
-          </List>
+  {property?.roommatePreferences?.map((item, index) => (
+    <ListItem
+      key={index}
+      sx={{
+        backgroundColor: "#f9f9f9",
+        borderRadius: "12px",
+        marginBottom: "8px",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+      }}
+    >
+      <ListItemIcon>
+        <CheckCircleIcon style={{ color: "#4caf50" }} />
+      </ListItemIcon>
+      <ListItemText
+        primary={
+          <Typography variant="subtitle1" fontWeight="bold">
+            {item.key}
+          </Typography>
+        }
+        secondary={
+          <Typography variant="body2" color="textSecondary">
+            {item.values}
+          </Typography>
+        }
+      />
+    </ListItem>
+  ))}
+</List>
+
 
           {/* Food Preferences */}
           <Typography variant="h6" mt={3}>

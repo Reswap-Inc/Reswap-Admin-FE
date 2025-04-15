@@ -223,7 +223,7 @@ const Listing = () => {
 
           {/* Add Button */}
           <AddButton
-            onClick={() => navigate("/reswap/web/admin/home/add-listing")}
+            onClick={() => navigate("/web/admin/home/add-listing")}
             bgColor="#5CBA47"
             textColor="#1C1C1C"
             startIcon={<AddIcon />}

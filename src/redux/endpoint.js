@@ -6,6 +6,7 @@ export const cookies =
 
 //Auth and user
 const BASE_URL = `https://${HOST_NAME}:${PORT_NUMBER}`;
+export const PROFILE = `https://${HOST_NAME}:${PORT_NUMBER}/profile`;
 export const REGISTRATION = `${BASE_URL}/api/auth/${VERSION}/register`;
 export const FORGOT_PASSWORD_EMAIL = `${BASE_URL}/api/auth/${VERSION}/forgotPasswordEmail`;
 export const RESET_PASSWORD_EMAIL = `${BASE_URL}/api/auth/${VERSION}/forgotPasswordUser`;
@@ -15,7 +16,7 @@ export const LOGIN = `${BASE_URL}/api/auth/${VERSION}/login`;
 export const USER_REGISTER = `${BASE_URL}/api/auth/${VERSION}/register`;
 export const GET_ALL_USER = `${BASE_URL}/api/auth/${VERSION}/getAllUsers`;
 export const BAN_USER =`${BASE_URL}/api/auth/${VERSION}/banUser`;
-export const LOGOUT = `${BASE_URL}/api/auth/${VERSION}/logout?redirect_url=https://reswap.tmithun.com/login`;
+export const LOGOUT = "https://reswap.tmithun.com/api/auth/v1.2/logout?redirect_url=https://reswap.tmithun.com/login";
 
 //General
 export const ROBOT_TXT = `${BASE_URL}/api/general/${VERSION}/robots.txt`;
@@ -27,6 +28,11 @@ export const GET_ALL_COUNTRIES = `${BASE_URL}/api/general/${VERSION}/getCountrie
 export const GET_COMMUNITIES = `${BASE_URL}/api/general/${VERSION}/getCommunities`;
 export const GET_CONFIGURATION = `${BASE_URL}/api/general/${VERSION}/getConfiguration?configKey`;
 export const GET_LOCATION_FROM_ZIP = `${BASE_URL}/api/general/${VERSION}/getLocationFromZip?zipCode`;
+export const REGISTRATION_DEVICES = `${BASE_URL}/api/general/${VERSION}/RegisterDevice`;
+export const GET_ALL_NOTIFICATION = `${BASE_URL}/api/general/${VERSION}/getAllNotifications`;
+export const SEE_NOTIFICATION = `${BASE_URL}/api/general/${VERSION}/seeNotification`;
+export const DELETE_NOTIFICATION = `${BASE_URL}/api/general/${VERSION}/deleteNotification`;
+export const DELETE_DEVICES = `${BASE_URL}/api/general/${VERSION}/deleteDevice`;
 
 //Fashion/Essentials
 

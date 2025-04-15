@@ -1,35 +1,58 @@
 import axios from "axios";
-import { LOGOUT } from "../redux/endpoint";
+import { LOGOUT, PROFILE } from "../redux/endpoint";
 import { handleLogin } from "../utils/useRedirect";
+import { createAsyncThunk } from "@reduxjs/toolkit";
+import { get } from "immutable";
+
+const clearAllCookies = () => {
+  const cookies = document.cookie.split(";");
+
+  for (let cookie of cookies) {
+    const eqPos = cookie.indexOf("=");
+    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+console.log(name,"cookiessname==================")
+    // Clear cookie for all domain/path variants
+    const domain = window.location.hostname;
+
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain}`;
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${domain}`;
+  }
+};
 
 export const userLogout = async () => {
   try {
-    // Call logout API to let server clear HttpOnly cookies
-    const response = await axios.get(LOGOUT, {
-      withCredentials: true, // Very important to send cookies
-      validateStatus: (status) => status < 400,
+    const response = await fetch(LOGOUT, {
+      method: 'GET', // Use a string here
+      credentials: 'include', // This is the correct property for sending cookies
     });
 
-    console.log("Logout response:", response);
-
-    // Clear local/session storage (client-side tokens)
-    localStorage.clear();
-    sessionStorage.clear();
-
-    // Clear any non-HttpOnly cookies (if any)
-    document.cookie.split(";").forEach((cookie) => {
-      const name = cookie.trim().split("=")[0];
-      document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;`;
-    });
-
-    // Redirect to login
-    window.location.href = "/login";
-  } catch (error) {
-    handleLogin(error);
-    if (axios.isAxiosError(error)) {
-      throw new Error(error.response?.data?.message || "Something went wrong.");
-    } else {
-      throw new Error("An unexpected error occurred. Please try again.");
+    // Optionally, handle the response if needed
+    if (!response.ok) {
+      throw new Error('Logout failed');
     }
+
+    return await response.json(); // or response.text(), depending on what your backend sends
+  } catch (error) {
+    console.error('Logout Error:', error);
+    throw error; // rethrow if you want to handle it where it's called
   }
 };
+
+
+
+
+
+
+export const getProfile = createAsyncThunk("profile/get", async (_, thunkAPI) => {
+  try {
+    const response = await axios.get(PROFILE, {
+      withCredentials: true,
+    });
+    console.log("respose profile++++++=============",response)
+    return response
+  } catch (error) {
+    handleLogin(error);
+    return thunkAPI.rejectWithValue(error.response?.data || "Unknown error");
+  }
+});

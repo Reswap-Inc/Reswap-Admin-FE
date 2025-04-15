@@ -31,6 +31,7 @@ import { useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useSelector } from "react-redux";
 
 const Ctable = ({ tableHead, rowData, tableName, pagination, setPage, setRowsPerPage ,fordispatch}) => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -45,7 +46,7 @@ const Ctable = ({ tableHead, rowData, tableName, pagination, setPage, setRowsPer
     event.stopPropagation(); // Prevent row click event
     setAnchorEl(event.currentTarget);
   };
-
+  const profile=useSelector((state)=>state.getProfileSlice?.data?.data)
   const handleClose = () => {
     setAnchorEl(null);
   };
@@ -133,7 +134,7 @@ console.log(pagination,"paginationddddddddddddd")
             </TableRow>
           </TableHead>
           <TableBody>
-            {rowData?.map((rowData, index) => (
+            {/* {rowData?.map((rowData, index) => (
               <TableRow
                 key={rowData?.listingId || index}
                 sx={{ 
@@ -144,7 +145,7 @@ console.log(pagination,"paginationddddddddddddd")
                     backgroundColor: '#f5f5f5'
                   }
                 }}
-                onClick={() => navigate(`/reswap/web/admin/home/listing-details/${rowData?.listingId}`)}
+                onClick={() => navigate(`/web/admin/home/listing-details/${rowData?.listingId}`)}
               >
                 <TableCell sx={{ fontFamily: "Open Sans" }}>
                   {rowData?.listingId}
@@ -194,7 +195,65 @@ console.log(pagination,"paginationddddddddddddd")
                   </IconButton>
                 </TableCell>
               </TableRow>
-            ))} 
+            ))}  */}
+            {rowData
+  ?.filter((item) => item?.propertyManagerDetails?.sub==profile?.sub)
+  .map((rowData, index) => (
+    <TableRow
+      key={rowData?.listingId || index}
+      sx={{ 
+        backgroundColor: "#ffffff", 
+        cursor: "pointer", 
+        fontFamily: "Open Sans",
+        '&:hover': {
+          backgroundColor: '#f5f5f5'
+        }
+      }}
+      onClick={() => navigate(`/web/admin/home/listing-details/${rowData?.listingId}`)}
+    >
+      <TableCell sx={{ fontFamily: "Open Sans" }}>
+        {rowData?.listingId}
+      </TableCell>
+      <TableCell sx={{ fontFamily: "Open Sans", maxWidth: 200 }}>
+        {truncateText(rowData?.title, 25)}
+      </TableCell>
+      <TableCell sx={{ fontFamily: "Open Sans", maxWidth: 200 }}>
+        {truncateText(rowData?.propertyName, 25)}
+      </TableCell>
+      <TableCell>
+        {rowData?.unitType || "---"}
+      </TableCell>
+      <TableCell sx={{ fontFamily: "Open Sans", maxWidth: 250 }}>
+        {truncateText(`${rowData?.location?.address}, ${rowData?.location?.city}, ${rowData?.location?.state}, ${rowData?.location?.country}`, 40)}
+      </TableCell>
+      <TableCell>{rowData?.viewCount}</TableCell>
+      <TableCell sx={{ color: rowData?.verified ? "green" : "red" }}>
+        {rowData?.verified ? "Active" : "Inactive"}
+      </TableCell>
+      <TableCell
+        sx={{ 
+          color: rowData?.status === "active" 
+            ? "#2E7D32"
+            : rowData?.status === "approval" 
+            ? "#ED6C02"
+            : "#D32F2F",
+          fontWeight: 500
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {rowData?.status}
+        <IconButton onClick={(e) => {
+          e.stopPropagation();
+          setRowData(rowData);
+          handleOpen(e);
+          setlistingId(rowData?.listingId);
+        }}>
+          <MoreVertIcon />
+        </IconButton>
+      </TableCell>
+    </TableRow>
+))}
+
           </TableBody>
         </Table>
         <TablePagination
@@ -228,7 +287,7 @@ console.log(pagination,"paginationddddddddddddd")
         <List>
           <ListItem
             button
-            onClick={() => navigate("/reswap/web/admin/home/edit-listing", { state: { row } })}
+            onClick={() => navigate("/web/admin/home/edit-listing", { state: { row } })}
           >
             <ListItemIcon>
               <EditIcon />
