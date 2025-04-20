@@ -38,7 +38,7 @@ const MatrixChat = () => {
     return (
       <div style={{ width: "100%", height: "100vh" }}>
       <iframe
-        src="/hydrogen/index.html"
+        src="/web/admin/hydrogen/index.html"
         style={{ width: "100%", height: "100%", overflow: "auto" }}
         scrolling="auto"
         title="Hydrogen Chat"

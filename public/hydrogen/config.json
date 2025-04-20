@@ -7,7 +7,7 @@
     "defaultHomeServer": "https://reswap.tmithun.com/",
     "bugReportEndpointUrl": "https://element.io/bugreports/submit",
     "themeManifests": [
-      "assets/theme-element.json"
+      "/web/admin/hydrogen/assets/theme-element.json"
     ],
     "defaultTheme": {
       "light": "element-light",

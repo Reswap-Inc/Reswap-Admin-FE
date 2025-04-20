@@ -6,20 +6,20 @@ import { handleLogin } from "../utils/useRedirect";
 /**
  * Get Listings Thunk
  */
-export const getListingThunk = createAsyncThunk(
-  "listing/getListing",
-  async (listingId) => {
-    try {
-      const response = await axios.get(`${GET_LISTING}?listingId=${listingId}`, {
-        withCredentials: true,
-      });
-      return response.data;
-    } catch (error) {
-      handleLogin(error)
-      throw error;
-    }
-  }
-);
+// export const getListingThunk = createAsyncThunk(
+//   "listing/getListing",
+//   async (listingId) => {
+//     try {
+//       const response = await axios.get(`${GET_LISTING}?listingId=${listingId}`, {
+//         withCredentials: true,
+//       });
+//       return response.data;
+//     } catch (error) {
+//       handleLogin(error)
+//       throw error;
+//     }
+//   }
+// );
 
 /**
  * Add Listing Thunk

@@ -20,8 +20,8 @@ export const getListingThunk = createAsyncThunk(
       const response = await axios.get(`${GET_LISTING}?listingId=${listingId}`, {
         withCredentials: true,
       });
-
-      return response.data;
+console.log( response, "resp============onse")
+      return  response.data;
     } catch (error) {
       handleLogin(error)
       throw error;

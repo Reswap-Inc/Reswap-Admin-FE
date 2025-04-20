@@ -112,8 +112,8 @@ console.log(profile,"profilejs=========")
         <div className="flex items-center gap-4">
           <Link to="/web/admin/home" className="flex items-center gap-2">
             <img
-              src="/rlogo.png"
-              alt="BigTrader Logo"
+              src="/web/admin/rlogo.png"
+              alt="Reswap Logo"
               className="h-12 w-auto"
             />
           </Link>

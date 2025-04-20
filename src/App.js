@@ -18,6 +18,7 @@ import UserProfile from "./pages/UserProfile.js";
 import ListingOutlet from "./components/ListingOutlet.jsx";
 import { messaging } from './utils/firebaseConfig.js';
 import { getToken } from 'firebase/messaging';
+import AddListing11 from "./pages/rough.js";
 
 
 
@@ -52,7 +53,7 @@ const App = () => {
           />
 
           {/* Login route without Navbar */}
-          <Route path="/web/admin/login" element={<LoginPage />} />
+          {/* <Route path="/web/admin/login" element={<LoginPage />} /> */}
 
           {/* Protected routes with Navbar */}
           <Route
@@ -64,12 +65,13 @@ const App = () => {
               </>
             }
           >
-            <Route index element={<Navigate to="/login" replace />} />
+            <Route index element={<Navigate to="/web/admin/home" replace />} />
             <Route path="home" element={<ListingOutlet />}>
               <Route index element={<Listing />} />{" "}
               {/* ✅ Default component for /listings */}
               <Route path="add-listing" element={<AddListing />} />{" "}
               <Route path="edit-listing" element={<AddListing />} />{" "}
+              <Route path="appdata" element={<AddListing11/>} />{" "}
               {/* ✅ Relative path */}
               <Route
                 path="listing-details/:listingId"

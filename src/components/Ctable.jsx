@@ -200,7 +200,7 @@ console.log(pagination,"paginationddddddddddddd")
   ?.filter((item) => item?.propertyManagerDetails?.sub==profile?.sub)
   .map((rowData, index) => (
     <TableRow
-      key={rowData?.listingId || index}
+      key={rowData?.listingId|| index}
       sx={{ 
         backgroundColor: "#ffffff", 
         cursor: "pointer", 
@@ -221,7 +221,7 @@ console.log(pagination,"paginationddddddddddddd")
         {truncateText(rowData?.propertyName, 25)}
       </TableCell>
       <TableCell>
-        {rowData?.unitType || "---"}
+        {rowData?.unitType?.name || "---"}
       </TableCell>
       <TableCell sx={{ fontFamily: "Open Sans", maxWidth: 250 }}>
         {truncateText(`${rowData?.location?.address}, ${rowData?.location?.city}, ${rowData?.location?.state}, ${rowData?.location?.country}`, 40)}

@@ -263,8 +263,8 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
       setFormData({
         
         listingType: row?.listingType,
-        propertyType: row?.propertyType,
-        unitType: row.unitType,
+        propertyType: row?.propertyType?.id,
+        unitType: row.unitType?.id,
         roomType: row.roomType,
         title: row.title,
         propertyName: row.propertyName,
@@ -285,10 +285,10 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
         rentAmount: row.price.rent.amount,
         depositAmount: row.price.deposit.amount,
         feesAmount: row.price.fees.cleaning.amount,
-        petsAllowed: row.petsAllowed,
-        petsPresent: row.petsPresent,
+        petsAllowed: row.petsAllowed?.id,
+        petsPresent: row.petsPresent?.id,
         roommatePreferences: row.roommatePreferences,
-        foodPreferences: row.foodPreferences,
+        foodPreferences:row.foodPreferences.map(pref => pref.id),
         configurationHouse: {
           bedrooms: {
             number: row.configurationHouse.bedrooms?.number,
@@ -329,7 +329,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
         },
         currentResidents: row.currentResidents,
         floorPlanImage: row.floorPlanImage,
-        saleType: row.saleType,
+        saleType: row.saleType?.id,
         viewCount: row.viewCount,
         verified: row.verified,
         verifiedBy: row.verifiedBy,
@@ -841,6 +841,7 @@ console.log("funimage============",funImage)
           });
           return // Set errors from Yup
         }
+        console.log(apiFormData,"dueataaaaaaaaaaaaaaaaaaaaaaaaa")
         response = await addListingFunction(apiFormData);
       }
 
@@ -1435,39 +1436,7 @@ console.log("funimage============",funImage)
             <Grid container spacing={3}>
               
 
-             <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Amenities  <span className="text-red-900">*</span></InputLabel>
-                  <Select
-                    multiple
-                    name="amenities"
-                    value={formData.amenities || []}
-                    onChange={handleChange}
-                    input={<OutlinedInput label="amenities" />}
-                    renderValue={(selected) => {
-                      return amenities
-                        .filter(option => selected.includes(option.id))
-                        .map(option => option.name)
-                        .join(', ');
-                    }}
-                    MenuProps={MenuProps}
-                    sx={{
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "#23BB67",
-                      },
-                    }}
-                  >
-                    {amenities?.map((option) => (
-                      <MenuItem key={option.id} value={option.id}>
-                        <Checkbox 
-                          checked={formData.amenities?.indexOf(option.id) > -1} 
-                        />
-                        <ListItemText primary={option.name} />
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
+             
 
               <Grid item xs={12} md={6}>
                 <TextField
@@ -1526,7 +1495,39 @@ console.log("funimage============",funImage)
                   label="Date Flexible"
                 />
               </Grid>
-
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Amenities  <span className="text-red-900">*</span></InputLabel>
+                  <Select
+                    multiple
+                    name="amenities"
+                    value={formData.amenities || []}
+                    onChange={handleChange}
+                    input={<OutlinedInput label="amenities" />}
+                    renderValue={(selected) => {
+                      return amenities
+                        .filter(option => selected.includes(option.id))
+                        .map(option => option.name)
+                        .join(', ');
+                    }}
+                    MenuProps={MenuProps}
+                    sx={{
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#23BB67",
+                      },
+                    }}
+                  >
+                    {amenities?.map((option) => (
+                      <MenuItem key={option.id} value={option.id}>
+                        <Checkbox 
+                          checked={formData.amenities?.indexOf(option.id) > -1} 
+                        />
+                        <ListItemText primary={option.name} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
               <Grid item xs={12}>
                 <Typography
                   variant="subtitle1"
@@ -1794,99 +1795,122 @@ console.log("funimage============",funImage)
               )}
             </Grid>
             <Box>
-              <Typography variant="h6" sx={{ color: "#10552F", mb: 2 }}>
-                Furniture Images (Max 3)  <span className="text-red-900">*</span>
+  <Typography variant="h6" sx={{ color: "#10552F", mb: 2 }}>
+    Furniture Images <span className="text-red-900">*</span>
+  </Typography>
+
+  <Grid container spacing={2}>
+    {furnitureImages.map((image, index) => (
+      <Grid item xs={12} sm={4} key={index}>
+        <Box
+          sx={{
+            width: "100%",
+            height: 200,
+            border: "2px dashed #23BB67",
+            borderRadius: 2,
+            position: "relative",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "#f8faf8",
+            overflow: "hidden",
+            "&:hover": {
+              borderColor: "#10552F",
+            },
+          }}
+        >
+          {image ? (
+            <>
+              <img
+                src={image}
+                alt={`furniture-${index}`}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+              <IconButton
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
+                  color: "white",
+                  "&:hover": {
+                    backgroundColor: "rgba(0, 0, 0, 0.7)",
+                  },
+                }}
+                onClick={() => handleImageRemove(index, "furniture")}
+              >
+                <RemoveIcon />
+              </IconButton>
+            </>
+          ) : (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                cursor: "pointer",
+              }}
+              onClick={() =>
+                document.getElementById(`furniture-upload-${index}`).click()
+              }
+            >
+              <AddPhotoAlternateIcon
+                sx={{ fontSize: 40, color: "#23BB67", mb: 1 }}
+              />
+              <Typography variant="body2" color="textSecondary">
+                Click to upload
               </Typography>
-              <Grid container spacing={2}>
-                {furnitureImages.map((image, index) => (
-                  <Grid item xs={12} sm={4} key={index}>
-                    <Box
-                      sx={{
-                        width: "100%",
-                        height: 200,
-                        border: "2px dashed #23BB67",
-                        borderRadius: 2,
-                        position: "relative",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        backgroundColor: "#f8faf8",
-                        overflow: "hidden",
-                        "&:hover": {
-                          borderColor: "#10552F",
-                        },
-                      }}
-                    >
-                      {image ? (
-                        <>
-                          <img
-                            src={image}
-                            alt={`furniture-${index}`}
-                            style={{
-                              width: "100%",
-                              height: "100%",
-                              objectFit: "cover",
-                            }}
-                          />
-                          <IconButton
-                            sx={{
-                              position: "absolute",
-                              top: 8,
-                              right: 8,
-                              backgroundColor: "rgba(0, 0, 0, 0.5)",
-                              color: "white",
-                              "&:hover": {
-                                backgroundColor: "rgba(0, 0, 0, 0.7)",
-                              },
-                            }}
-                            onClick={() =>
-                              handleImageRemove(index, "furniture")
-                            }
-                          >
-                            <RemoveIcon />
-                          </IconButton>
-                        </>
-                      ) : (
-                        <Box
-                          sx={{
-                            display: "flex",
-                            flexDirection: "column",
-                            alignItems: "center",
-                            cursor: "pointer",
-                          }}
-                          onClick={() =>
-                            document
-                              .getElementById(`furniture-upload-${index}`)
-                              .click()
-                          }
-                        >
-                          <AddPhotoAlternateIcon
-                            sx={{ fontSize: 40, color: "#23BB67", mb: 1 }}
-                          />
-                          <Typography variant="body2" color="textSecondary">
-                            Click to upload
-                          </Typography>
-                        </Box>
-                      )}
-                      <input
-                        type="file"
-                        id={`furniture-upload-${index}`}
-                        accept="image/*"
-                        hidden
-                        onChange={(event) =>
-                          handleImageUploadfur(event, index, "furniture")
-                        }
-                      />
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
-              {errors?.furnitureImages && (
-                  <FormHelperText error>
-                    {errors.furnitureImage}
-                  </FormHelperText>
-                )}
             </Box>
+          )}
+          <input
+            type="file"
+            id={`furniture-upload-${index}`}
+            accept="image/*"
+            hidden
+            onChange={(event) =>
+              handleImageUploadfur(event, index, "furniture")
+            }
+          />
+        </Box>
+      </Grid>
+    ))}
+
+    {/* Add image button for unlimited uploads */}
+    <Grid item xs={12} sm={4}>
+      <Box
+        sx={{
+          width: "100%",
+          height: 200,
+          border: "2px dashed #ccc",
+          borderRadius: 2,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#f0f0f0",
+          cursor: "pointer",
+          "&:hover": {
+            borderColor: "#10552F",
+          },
+        }}
+        onClick={() => setFurnitureImages([...furnitureImages, null])}
+      >
+        <AddPhotoAlternateIcon sx={{ fontSize: 40, color: "#999", mb: 1 }} />
+        <Typography variant="body2" color="textSecondary">
+          Add more image
+        </Typography>
+      </Box>
+    </Grid>
+  </Grid>
+
+  {errors?.furnitureImages && (
+    <FormHelperText error>{errors.furnitureImage}</FormHelperText>
+  )}
+</Box>
+
           </Box>
 
           {/* Pricing Section */}
@@ -1963,12 +1987,137 @@ console.log("funimage============",funImage)
           </Box>
 
           {/* Images Section */}
+          <Box>
+  <Typography variant="h6" sx={{ color: "#10552F", mb: 2 }}>
+    Property Images <span className="text-red-900">*</span>
+  </Typography>
+
+  <Grid container spacing={2}>
+    {unitImages.map((image, index) => (
+      <Grid item xs={12} sm={4} key={index}>
+        <Box
+          sx={{
+            width: "100%",
+            height: 200,
+            border: "2px dashed #23BB67",
+            borderRadius: 2,
+            position: "relative",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "#f8faf8",
+            overflow: "hidden",
+            "&:hover": {
+              borderColor: "#10552F",
+            },
+          }}
+        >
+          {image ? (
+            <>
+              <img
+                src={image}
+                alt={`property-${index}`}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+              <IconButton
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  backgroundColor: "rgba(0, 0, 0, 0.5)",
+                  color: "white",
+                  "&:hover": {
+                    backgroundColor: "rgba(0, 0, 0, 0.7)",
+                  },
+                }}
+                onClick={() => handleImageRemove(index, "property")}
+              >
+                <RemoveIcon />
+              </IconButton>
+            </>
+          ) : (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                cursor: "pointer",
+              }}
+              onClick={() =>
+                document.getElementById(`property-upload-${index}`).click()
+              }
+            >
+              <AddPhotoAlternateIcon
+                sx={{ fontSize: 40, color: "#23BB67", mb: 1 }}
+              />
+              <Typography variant="body2" color="textSecondary">
+                Click to upload
+              </Typography>
+            </Box>
+          )}
+          <input
+            type="file"
+            id={`property-upload-${index}`}
+            accept="image/*"
+            hidden
+            onChange={(event) =>
+              handleImageUploadfur(event, index, "property")
+            }
+          />
+        </Box>
+      </Grid>
+    ))}
+
+    {/* Add button to allow uploading new image slot */}
+    <Grid item xs={12} sm={4}>
+      <Box
+        sx={{
+          width: "100%",
+          height: 200,
+          border: "2px dashed #ccc",
+          borderRadius: 2,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#f0f0f0",
+          cursor: "pointer",
+          "&:hover": {
+            borderColor: "#10552F",
+          },
+        }}
+        onClick={() => {
+          setUnitImages([...unitImages, null]);
+        }}
+      >
+        <AddPhotoAlternateIcon
+          sx={{ fontSize: 40, color: "#999", mb: 1 }}
+        />
+        <Typography variant="body2" color="textSecondary">
+          Add more image
+        </Typography>
+      </Box>
+    </Grid>
+  </Grid>
+</Box>
 
           {/* Image Preview Grid */}
-          <Box>
+          {/* <Box>
             <Typography variant="h6" sx={{ color: "#10552F", mb: 2 }}>
               Property Images (Max 3) <span className="text-red-900">*</span>
             </Typography>
+            <input
+                      type="file"
+                      id={`property-upload-${1}`}
+                      accept="image/*"
+                      hidden
+                      onChange={(event) =>
+                        handleImageUploadfur(event, index, "property")
+                      }
+                    />
             <Grid container spacing={2}>
               {unitImages.map((image, index) => (
                 <Grid item xs={12} sm={4} key={index}>
@@ -2051,7 +2200,7 @@ console.log("funimage============",funImage)
                 </Grid>
               ))}
             </Grid>
-          </Box>
+          </Box> */}
 
           {/* <Box sx={{ mt: 2 }}>
           <Typography variant="h6" sx={{ color: "#10552F", mb: 2 }}>
