@@ -74,7 +74,7 @@ const ForgotPasswordLinkPage = () => {
                 <p style={{ fontSize: "14px", lineHeight: "22px", fontWeight: "400", color: "#6A6A6A", padding: "5px" }}>A password reset link will be sent to your registered admin email address.</p>
                 <button
                     type="submit"
-                    onClick={() => navigate("/forgot-password-link")}
+                    onClick={() => navigate("/reswap/web/admin/forgot-password-link")}
                     style={{
                         width: "100%",
                         padding: "12px",

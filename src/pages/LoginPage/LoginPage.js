@@ -14,7 +14,6 @@ const LoginPage = () => {
   const token = sessionStorage.getItem("iptoken");
   const [isLoading, setIsLoading] = useState(false);
 
-  
   useEffect(() => {
     const savedEmail = sessionStorage.getItem("rememberMeEmail");
 
@@ -73,7 +72,7 @@ const LoginPage = () => {
       //     sessionStorage.removeItem("rememberMePassword");
       //   }
 
-        navigate("/dashboard");
+      navigate("/reswap/web/admin/listings");
 
       //   return null;
       // }
@@ -308,14 +307,13 @@ const LoginPage = () => {
           )}
 
           <button
-           onClick={()=>navigate("/customers")}
+            type="submit"
             className={`w-full p-3 border-none rounded-md text-lg mb-5 font-bold relative flex items-center justify-center h-12 text-white ${
               isLoading ? "cursor-not-allowed" : "cursor-pointer"
             }`}
             style={{
               backgroundColor: "#10552F", // or use "#23BB67" for the lighter green
             }}
-            
           >
             {isLoading ? (
               <div className="absolute">

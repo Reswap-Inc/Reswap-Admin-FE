@@ -14,109 +14,353 @@ import {
   List,
   ListItem,
   ListItemIcon,
-  ListItemText,TablePagination,
+  ListItemText,
+  TablePagination,
+  Typography,
+  Modal,
+  Button,
+  TextField,
+  useMediaQuery,
+  useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import EditIcon from "@mui/icons-material/Edit";
 import ArchiveIcon from "@mui/icons-material/Archive";
 import BlockIcon from "@mui/icons-material/Block";
+import CancelIcon from "@mui/icons-material/Cancel";
+import PauseCircleIcon from "@mui/icons-material/PauseCircle";
+import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import { useNavigate } from "react-router-dom";
+import { approveListing, deleteListingThunk } from "../network/ListingThunk";
+import { updateListingFunction } from "../network/ListingThunk";
+import { useDispatch } from "react-redux";
+import { toast } from "react-toastify";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { useSelector } from "react-redux";
 
-const Ctable = ({ tableHead, rowData, tableName}) => {
+const Ctable = ({ tableHead, rowData, tableName, pagination, setPage, setRowsPerPage, fordispatch }) => {
   const [anchorEl, setAnchorEl] = useState(null);
-const navigate =useNavigate()
+  const [row, setRowData] = useState(null);
+
+  const navigate = useNavigate();
+  const [openmode, setopenmode] = useState(false);
+  const [listingid, setlistingId] = useState("");
+  const dispatch = useDispatch()
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteApiMessage, setDeleteApiMessage] = useState("");
+
   const handleOpen = (event) => {
     event.stopPropagation(); // Prevent row click event
     setAnchorEl(event.currentTarget);
   };
-
+  // const profile = useSelector((state) => state.getProfileSlice?.data?.data)
+  const profile = useSelector((state) => state.getProfileSlice?.data)
   const handleClose = () => {
     setAnchorEl(null);
   };
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
 
+  // console.log(profile,"paginationddddddddddddd")
   // Handlers for pagination
   const handleChangePage = (event, newPage) => {
-    setPage(newPage);
+    setPage(newPage + 1); // Add 1 as the API expects 1-based pagination
   };
 
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
+    setPage(1); // Reset to first page when changing rows per page
   };
 
+  const [message, setMessage] = useState("");
+
+  const handleInputChange = (event) => {
+    if (event.target.value.length <= 150) {
+      setMessage(event.target.value);
+    }
+  };
+
+  const onSubmit = async () => {
+    try {
+      const form = {
+        listingId: listingid,
+        reason: message,
+        action: "reject"
+      }
+      const res = await dispatch(approveListing(form))
+      fordispatch(" ")
+      setMessage("");
+      setopenmode(false);
+      handleClose();
+      toast.success(res?.payload?.status?.message || res?.payload?.response?.status?.message || "Listing rejected successfully");
+    } catch (error) {
+      toast.error(error.message || "Failed to reject listing");
+    }
+  };
+
+  const onSubmitApprove = async () => {
+    try {
+      const form = {
+        listingId: listingid,
+        action: "approve"
+      }
+      const res = await dispatch(approveListing(form))
+      console.log(res, "ddddddddddddddddddddddddddddddddd")
+      fordispatch(" ")
+      handleClose();
+      toast.success(res?.payload?.status?.message || res?.payload?.response?.status?.message || "Listing approved successfully");
+    } catch (error) {
+      toast.error(error.message || "Failed to approve listing");
+    }
+  };
+  const onSubmitHibernate = async () => {
+    try {
+      const newStatus = row?.status === 'active' ? 'inactive' : 'active';
+      const form = {
+        listingId: row?.listingId,
+        status: newStatus
+      };
+      const res = await updateListingFunction(form);
+      fordispatch("");
+      handleClose();
+      toast.success(res?.data?.status?.message || res?.data?.message || "Listing status updated successfully");
+      fordispatch("");
+    } catch (error) {
+      toast.error(error.message || "Failed to update listing status");
+    }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setDeleteApiMessage("");
+    try {
+      const result = await dispatch(deleteListingThunk(listingid)).unwrap();
+      const apiMsg = result?.status?.message || result?.message || "Listing deleted successfully";
+      setDeleteApiMessage(apiMsg);
+      if (!result?.status?.error && !result?.error) {
+        setTimeout(() => {
+          setDeleteDialogOpen(false);
+          setDeleteApiMessage("");
+          fordispatch(""); // Refresh table
+        }, 1500);
+      }
+    } catch (error) {
+      const apiMsg = error?.status?.message || error?.message || "Failed to delete listing";
+      setDeleteApiMessage(apiMsg);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Helper function to truncate text
+  const truncateText = (text, maxLength = 30) => {
+    if (!text) return "---";
+    const mobileMaxLength = isMobile ? 15 : maxLength;
+    return text.length > mobileMaxLength ? (
+      <Tooltip title={text}>
+        <Typography noWrap>
+          {text.substring(0, mobileMaxLength)}...
+        </Typography>
+      </Tooltip>
+    ) : text;
+  };
+
+  console.log(rowData, "rowdataq")
   return (
     <Box>
-      <TableContainer component={Paper} sx={{ background: "#fff" }}>
+      <TableContainer
+        component={Paper}
+        sx={{
+          background: "#fff",
+          overflowX: "auto", // Enable horizontal scrolling on mobile
+          "& .MuiTable-root": {
+            minWidth: isMobile ? 800 : "100%", // Ensure minimum width for mobile scrolling
+          }
+        }}
+      >
         <Table sx={{ width: "100%", fontFamily: "Open Sans" }} aria-label="dynamic table">
           <TableHead>
             <TableRow sx={{ bgcolor: "#737373" }}>
               {tableHead.map((header, index) => (
                 <TableCell
                   key={index}
-                  sx={{ bgcolor: "#EFFEF7", color: "#1A1F2D", fontFamily: "Open Sans" }}
+                  sx={{
+                    bgcolor: "#EFFEF7",
+                    color: "#1A1F2D",
+                    fontFamily: "Open Sans",
+                    fontSize: isMobile ? "0.75rem" : "0.875rem",
+                    padding: isMobile ? "8px 4px" : "16px",
+                    whiteSpace: "nowrap"
+                  }}
                 >
                   {header.name}
                 </TableCell>
               ))}
             </TableRow>
           </TableHead>
+
           <TableBody>
-            {rowData?.map((row, index) => (
+
+            {rowData?.map((rowData, index) => (
               <TableRow
-                key={index}
-                sx={{ backgroundColor: "#ffffff", cursor: "pointer", fontFamily: "Open Sans" }}
-                onClick={() => navigate("/listing-details")}
+                key={rowData?.listingId || index}
+                sx={{
+                  backgroundColor: "#ffffff",
+                  cursor: "pointer",
+                  fontFamily: "Open Sans",
+                  '&:hover': {
+                    backgroundColor: '#f5f5f5'
+                  }
+                }}
+                onClick={() => navigate(`/web/admin/home/listing-details/${rowData?.listingId}`)}
               >
-                <TableCell sx={{ fontFamily: "Open Sans" }}>{row?.customerId}</TableCell>
-                <TableCell sx={{ fontFamily: "Open Sans" }}>
-                  <img
-                    src={row?.categoryImagePath || row?.imageUrl || "/tableDefaultImage.jpeg"}
-                    alt={row.name}
-                    width={30}
-                    height={30}
-                  />
+                <TableCell sx={{
+                  fontFamily: "Open Sans",
+                  fontSize: isMobile ? "0.75rem" : "0.875rem",
+                  padding: isMobile ? "8px 4px" : "16px",
+                  whiteSpace: "nowrap"
+                }}>
+                  {rowData?.listingId}
+                  {/* {console.log(rowData,"listingId++++++++++========")} */}
                 </TableCell>
-                <TableCell sx={{ fontFamily: "Open Sans" }}>
-                  {row.name?.length > 25 ? (
-                    <Tooltip title={row.name}>
-                      <span>{`${row.name.slice(0, 25)}...`}</span>
-                    </Tooltip>
-                  ) : (
-                    row.customerName
-                  )}
+                <TableCell sx={{
+                  fontFamily: "Open Sans",
+                  maxWidth: isMobile ? 120 : 200,
+                  fontSize: isMobile ? "0.75rem" : "0.875rem",
+                  padding: isMobile ? "8px 4px" : "16px"
+                }}>
+                  {/* {truncateText(rowData?.title, 25)} */}
+                  {truncateText(rowData?.propertyName, 25)}
                 </TableCell>
-                {tableName === "subCategories" && (
-                  <TableCell>{row?.categoryId?.name || "---"}</TableCell>
-                )}
-                <TableCell sx={{ fontFamily: "Open Sans" }}>{row?.productsListed}</TableCell>
-                {[...Array(2)].map((_, i) => (
-                  <TableCell key={i}>{!row?.searchEnable ? 12 : "No"}</TableCell>
-                ))}
-                <TableCell>{"---"}</TableCell>
+                <TableCell sx={{
+                  fontFamily: "Open Sans",
+                  maxWidth: isMobile ? 120 : 200,
+                  fontSize: isMobile ? "0.75rem" : "0.875rem",
+                  padding: isMobile ? "8px 4px" : "16px"
+                }}>
+                  {/* {truncateText(rowData?.propertyName, 25)} */}
+                  {truncateText(rowData?.title, 25)}
+                </TableCell>
+                <TableCell sx={{
+                  fontSize: isMobile ? "0.75rem" : "0.875rem",
+                  padding: isMobile ? "8px 4px" : "16px",
+                  whiteSpace: "nowrap"
+                }}>
+                  {rowData?.unitType?.name || "---"}
+                </TableCell>
+                <TableCell sx={{
+                  fontFamily: "Open Sans",
+                  maxWidth: isMobile ? 150 : 250,
+                  fontSize: isMobile ? "0.75rem" : "0.875rem",
+                  padding: isMobile ? "8px 4px" : "16px"
+                }}>
+                  {truncateText(`${rowData?.location?.address}, ${rowData?.location?.city}, ${rowData?.location?.state}, ${rowData?.location?.country}`, 40)}
+                </TableCell>
+                <TableCell sx={{
+                  fontSize: isMobile ? "0.75rem" : "0.875rem",
+                  padding: isMobile ? "8px 4px" : "16px",
+                  whiteSpace: "nowrap"
+                }}>
+                  {rowData?.viewCount}
+                </TableCell>
+                <TableCell sx={{
+                  color: rowData?.verified ? "green" : "orange",
+                  fontSize: isMobile ? "0.75rem" : "0.875rem",
+                  padding: isMobile ? "8px 4px" : "16px",
+                  whiteSpace: "nowrap"
+                }}>
+                  {rowData?.verified ? "Yes" : "Pending"}
+                </TableCell>
+                {/* <TableCell
+        sx={{ 
+          color: rowData?.status === "active" 
+            ? "#2E7D32"
+            : rowData?.status === "approval" 
+            ? "#ED6C02"
+            : "#D32F2F",
+          fontWeight: 500,
+          fontSize: isMobile ? "0.75rem" : "0.875rem",
+          padding: isMobile ? "8px 4px" : "16px",
+          whiteSpace: "nowrap"
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {rowData?.status}
+      </TableCell> */}
                 <TableCell
-                  sx={{ color: !row?.searchEnable ? "green" : "red" }}
+                  sx={{
+                    color: (() => {
+                      switch (rowData?.status) {
+                        case "active":
+                          return "#2E7D32"; // Green
+                        case "pending":
+                          return "#ED6C02"; // Orange
+                        case "rejected":
+                          return "#D32F2F"; // Red
+                        case "inactive":
+                        case "draft":
+                          return "#6c757d"; // Gray
+                        default:
+                          return "#000000"; // Fallback
+                      }
+                    })(),
+                    fontWeight: 500,
+                    fontSize: isMobile ? "0.75rem" : "0.875rem",
+                    padding: isMobile ? "8px 4px" : "16px",
+                    whiteSpace: "nowrap"
+                  }}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {!row?.searchEnable ? "Active" : "No"}
-                  <IconButton onClick={handleOpen}>
-                    <MoreVertIcon />
+                  {rowData?.status
+                    ? rowData.status.charAt(0).toUpperCase() + rowData.status.slice(1)
+                    : ""}
+                </TableCell>
+
+                <TableCell>
+                  <IconButton
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRowData(rowData); // <-- Ensure this sets the row for the popover
+                      handleOpen(e);
+                      setlistingId(rowData?.listingId);
+                    }}
+                    size={isMobile ? "small" : "medium"}
+                  >
+                    <MoreVertIcon sx={{ fontSize: isMobile ? 16 : 20 }} />
                   </IconButton>
                 </TableCell>
               </TableRow>
             ))}
+
           </TableBody>
         </Table>
         <TablePagination
-        rowsPerPageOptions={[5, 10, 25]}
-        component="div"
-        count={rowData?.length || 0}
-        rowsPerPage={rowsPerPage}
-        page={page}
-        onPageChange={handleChangePage}
-        onRowsPerPageChange={handleChangeRowsPerPage}
-      />
+          rowsPerPageOptions={isMobile ? [5, 10] : [5, 10, 25]}
+          component="div"
+          count={pagination?.totalItems || 0} // Use total items from pagination
+          rowsPerPage={pagination?.currentItems || 10}
+          page={(pagination?.currentPage || 1) - 1} // Subtract 1 as MUI pagination is 0-based
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+          labelDisplayedRows={({ from, to, count }) =>
+            isMobile ? `${from}-${to}` : `${from}-${to} of ${count !== -1 ? count : `more than ${to}`}`
+          }
+          sx={{
+            "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+              fontSize: isMobile ? "0.75rem" : "0.875rem"
+            },
+            "& .MuiTablePagination-select": {
+              fontSize: isMobile ? "0.75rem" : "0.875rem"
+            }
+          }}
+        />
       </TableContainer>
 
       {/* Popover for MoreVertIcon Menu */}
@@ -134,26 +378,109 @@ const navigate =useNavigate()
         }}
       >
         <List>
-          <ListItem button onClick={() => navigate("/addform")}>
+          <ListItem
+            button
+            onClick={() => navigate("/web/admin/home/add-listing", { state: { editMode: true, listingId: row?.listingId } })}
+          >
             <ListItemIcon>
               <EditIcon />
             </ListItemIcon>
             <ListItemText primary="Edit" />
           </ListItem>
-          <ListItem button onClick={() => alert("comming soon")}>
+          <ListItem button sx={{ cursor: "pointer" }} onClick={onSubmitHibernate}>
+            <ListItemIcon>
+              {row?.status === 'active' ? <PauseCircleIcon color="warning" /> : <PlayCircleIcon color="success" />}
+            </ListItemIcon>
+            <ListItemText primary={row?.status === 'active' ? 'Hibernate' : 'Unhibernate'} />
+          </ListItem>
+          {/* <ListItem button sx={{ cursor: "pointer" }} onClick={onSubmitApprove}>
             <ListItemIcon>
               <ArchiveIcon />
             </ListItemIcon>
-            <ListItemText primary="Archive" />
+            <ListItemText primary="Approve" />
           </ListItem>
-          <ListItem button onClick={() => alert("comming soon!")}>
+          <ListItem button sx={{ cursor: "pointer" }} onClick={() => setopenmode(true)}>
             <ListItemIcon>
               <BlockIcon />
             </ListItemIcon>
-            <ListItemText primary="Ban User" />
-          </ListItem>
+            <ListItemText primary="Reject" />
+          </ListItem> */}
+          {profile?.custom_fields?.isLeanAdmin && profile?.params?.Roles && (
+            <>
+              <ListItem button sx={{ cursor: "pointer" }} onClick={onSubmitApprove}>
+                <ListItemIcon>
+                  <ArchiveIcon />
+                </ListItemIcon>
+                <ListItemText primary="Approve" />
+              </ListItem>
+
+              <ListItem button sx={{ cursor: "pointer" }} onClick={() => setopenmode(true)}>
+                <ListItemIcon>
+                  <BlockIcon />
+                </ListItemIcon>
+                <ListItemText primary="Reject" />
+              </ListItem>
+              <ListItem button sx={{ cursor: "pointer" }} onClick={() => setDeleteDialogOpen(true)}>
+                <ListItemIcon>
+                  <CancelIcon color="error" />
+                </ListItemIcon>
+                <ListItemText primary="Delete" primaryTypographyProps={{ color: 'error' }} />
+              </ListItem>
+            </>
+          )}
         </List>
       </Popover>
+      <Modal open={openmode} onClose={() => setopenmode(false)}>
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: isMobile ? "90%" : 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: isMobile ? 2 : 4,
+            borderRadius: 2,
+          }}
+        >
+          <Typography variant="h6" gutterBottom>
+            Enter your reason        </Typography>
+          <TextField
+            fullWidth
+            label="Message"
+            variant="outlined"
+            value={message}
+            onChange={handleInputChange}
+            inputProps={{ maxLength: 150 }}
+            multiline
+            rows={3}
+          />
+          <Box mt={2} display="flex" justifyContent="space-between">
+            <Button variant="contained" color="primary" onClick={onSubmit}>
+              Submit
+            </Button>
+            <Button variant="outlined" color="secondary" onClick={() => setopenmode(false)}>
+              Cancel
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Delete Listing</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete this listing?</Typography>
+          {deleteApiMessage && (
+            <Typography sx={{ mt: 2, color: deleteApiMessage.toLowerCase().includes('fail') ? 'error.main' : 'success.main' }}>
+              {deleteApiMessage}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={deleting}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" disabled={deleting}>{deleting ? "Deleting..." : "Delete"}</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

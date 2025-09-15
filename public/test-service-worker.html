@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Service Worker Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .log {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .error {
+            color: red;
+        }
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <h1>Firebase Service Worker Test</h1>
+    
+    <div>
+        <button onclick="testServiceWorker()">Test Service Worker Registration</button>
+        <button onclick="testFirebaseToken()">Test Firebase Token</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <div id="log" class="log"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toISOString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : '';
+            logElement.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function getServiceWorkerConfig() {
+            const isProduction = window.location.hostname === 'reswap.tmithun.com';
+            const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+            
+            if (isProduction) {
+                return {
+                    path: '/web/admin/firebase-messaging-sw.js',
+                    scope: '/web/admin/'
+                };
+            } else if (isLocalhost) {
+                return {
+                    path: '/firebase-messaging-sw.js',
+                    scope: '/'
+                };
+            } else {
+                const pathSegments = window.location.pathname.split('/');
+                const basePath = pathSegments.length > 1 ? `/${pathSegments[1]}/` : '/';
+                return {
+                    path: `${basePath}firebase-messaging-sw.js`,
+                    scope: basePath
+                };
+            }
+        }
+
+        async function testServiceWorker() {
+            log('Starting service worker test...');
+            log(`Current location: ${window.location.href}`);
+            log(`Current pathname: ${window.location.pathname}`);
+            
+            const config = getServiceWorkerConfig();
+            log(`Service worker config: ${JSON.stringify(config, null, 2)}`);
+            
+            // Check if service worker is supported
+            if (!('serviceWorker' in navigator)) {
+                log('Service Worker is not supported in this browser', 'error');
+                return;
+            }
+            
+            // Check if service worker file is accessible
+            try {
+                const response = await fetch(config.path, { method: 'HEAD' });
+                log(`Service worker file accessibility: ${response.status} ${response.ok ? 'OK' : 'FAILED'}`, response.ok ? 'success' : 'error');
+            } catch (error) {
+                log(`Service worker file not accessible: ${error.message}`, 'error');
+            }
+            
+            // Try to register service worker
+            try {
+                const registration = await navigator.serviceWorker.register(config.path, { scope: config.scope });
+                log(`Service worker registered successfully: ${registration.scope}`, 'success');
+                
+                // Check if service worker is active
+                if (registration.active) {
+                    log('Service worker is active', 'success');
+                } else {
+                    log('Service worker is not active yet', 'info');
+                }
+                
+                // Listen for service worker updates
+                registration.addEventListener('updatefound', () => {
+                    log('Service worker update found', 'info');
+                });
+                
+            } catch (error) {
+                log(`Service worker registration failed: ${error.message}`, 'error');
+                log(`Error details: ${JSON.stringify(error, null, 2)}`, 'error');
+            }
+        }
+
+        async function testFirebaseToken() {
+            log('Starting Firebase token test...');
+            
+            // Check if Firebase is available
+            if (typeof firebase === 'undefined') {
+                log('Firebase is not loaded', 'error');
+                return;
+            }
+            
+            try {
+                // Request notification permission
+                const permission = await Notification.requestPermission();
+                log(`Notification permission: ${permission}`, permission === 'granted' ? 'success' : 'error');
+                
+                if (permission === 'granted') {
+                    // Try to get FCM token
+                    const messaging = firebase.messaging();
+                    const token = await messaging.getToken({
+                        vapidKey: 'BOb7dqz6blHs1j3Kfv8R2aKXanJnne5LAR7zSGRvIWyLBStfhTQ6gO4DgmCdksHm-htPKp3DKu509REy3VB9gZs'
+                    });
+                    
+                    if (token) {
+                        log(`FCM token retrieved: ${token.substring(0, 50)}...`, 'success');
+                    } else {
+                        log('No FCM token available', 'error');
+                    }
+                }
+            } catch (error) {
+                log(`Firebase token test failed: ${error.message}`, 'error');
+                log(`Error details: ${JSON.stringify(error, null, 2)}`, 'error');
+            }
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            log('Page loaded, running initial tests...');
+            setTimeout(() => {
+                testServiceWorker();
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

@@ -1,145 +1,175 @@
 import axios from "axios";
-import { CHANGE_PASSWORD, FORGOT_PASSWORD_EMAIL, LOGIN, REGISTRATION, RESET_PASSWORD_EMAIL,cookies } from "../config/endpoints";
+import { LOGOUT, PROFILE, REDIRECT_LOGIN, CHANGE_PASSWORD } from "../redux/endpoint";
+import { handleLogin } from "../utils/useRedirect";
+import { createAsyncThunk } from "@reduxjs/toolkit";
+import { get } from "immutable";
 
-export const userRegistration = async ({ formData }) => {
-  try {
-    const response = await axios.post(REGISTRATION, formData, {
-      headers: {
-        Cookie: cookies 
-      },
-      withCredentials: true, // Required to send cookies in React Native
-    });
+const clearAllCookies = () => {
+  const cookies = document.cookie.split(";");
 
-    if (response.status !== 200) {
-      throw new Error(
-        response.data?.message || "Registration failed. Please try again."
-      );
-    }
+  for (let cookie of cookies) {
+    const eqPos = cookie.indexOf("=");
+    const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+    console.log(name,"cookiessname==================")
+    // Clear cookie for all domain/path variants
+    const domain = window.location.hostname;
 
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error(
-        "Axios error:",
-        error.response?.data?.message || error.message
-      );
-      throw new Error(error.response?.data?.message || "Something went wrong.");
-    } else {
-      throw new Error("An unexpected error occurred. Please try again.");
-    }
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain}`;
+    document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${domain}`;
   }
 };
 
-export const userLogin = async ({ formData }) => {
+export const userLogout = async () => {
   try {
-    const response = await axios.post(LOGIN, formData, {
-      headers: {
-        Cookie: cookies 
-      },
-      withCredentials: true, // Required to send cookies in React Native
+    const response = await fetch(LOGOUT, {
+      method: 'GET', // Use a string here
+      credentials: 'include', // This is the correct property for sending cookies
+      // redirect: 'follow' // default value
     });
 
-    if (response.status !== 200) {
-      throw new Error(
-        response.data?.message || "Login failed. Please try again."
-      );
+    // Optionally, handle the response if needed
+    if (!response.ok) {
+      throw new Error('Logout failed');
     }
 
-    return response.data;
+    return await response.json(); // or response.text(), depending on what your backend sends
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error(
-        "Axios error:",
-        error.response?.data?.message || error.message
-      );
-      throw new Error(error.response?.data?.message || "Something went wrong.");
-    } else {
-      throw new Error("An unexpected error occurred. Please try again.");
-    }
+    console.error('Logout Error:', error);
+    throw error; // rethrow if you want to handle it where it's called
   }
 };
 
-export const userResetPassword = async ({ formData }) => {
+
+// export const getProfile = createAsyncThunk("profile/get", async (_, thunkAPI) => {
+//   try {
+//     const response = await axios.get(PROFILE, {
+//       withCredentials: true,
+//       validateStatus: (status) => status < 300, // Don't auto-follow redirects
+//     });
+//     console.log('Santhosh-0:', response.status, response);
+//     return response.data;
+//   } catch (error) {
+//     console.log('Santhosh-1--', error.response, error)
+//     // Check if it's a redirect (30x status)
+//     if (error.response?.status >= 300 && error.response?.status <= 400) {
+//       console.log("Session expired - redirect detected:", error.response.status);
+//       return thunkAPI.rejectWithValue({
+//         status: error.response.status,
+//         message: "Session expired"
+//       });
+//     }
+    
+//     // Handle other errors
+//     handleLogin(error);
+//     return thunkAPI.rejectWithValue(error.response?.data || "Unknown error");
+//   }
+// });
+
+export const getProfile = createAsyncThunk("profile/get", async (_, thunkAPI) => {
   try {
-    const response = await axios.post(RESET_PASSWORD_EMAIL, formData, {
-      headers: {
-        Cookie: cookies 
-      },
-      withCredentials: true, // Required to send cookies in React Native
+    const response = await axios.get(PROFILE, {
+      withCredentials: true,
+      validateStatus: () => true, // Accept all responses
     });
 
-    if (response.status !== 200) {
-      throw new Error(
-        response.data?.message || "Reset failed. Please try again."
-      );
+    const contentType = response.headers['content-type'];
+    console.log('Santhosh0: contentType: ', contentType, '---response:  ',response);
+    console.log('Santhosh1: data: ', response.data, '---status:  ',response.status);
+
+    if (contentType?.includes('text/html') && response.data?.includes('<title>Reswap')) {
+      console.log('Santhosh: Session likely expired - HTML login page returned');
+
+      return thunkAPI.rejectWithValue({
+        status: 401,
+        message: 'Session expired',
+        htmlRedirect: true
+      });
+    } 
+      //     // Check if it's a redirect (30x status)
+    else if (response?.status >= 300 && response?.status <= 404) {
+      console.log("Session expired - redirect detected:", response.status);
+      return thunkAPI.rejectWithValue({
+        status: response.status,
+        message: "Session expired"
+      });
     }
 
     return response.data;
+
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error(
-        "Axios error:",
-        error.response?.data?.message || error.message
-      );
-      throw new Error(error.response?.data?.message || "Something went wrong.");
-    } else {
-      throw new Error("An unexpected error occurred. Please try again.");
-    }
+    console.log('Santhosh-Error:', error.response?.status);
+
+    handleLogin(error);
+    return thunkAPI.rejectWithValue(error.response?.data || "Unknown error");
   }
-};
-export const userForgetPassword = async ({ formData }) => {
+});
+
+
+// export const getProfile = createAsyncThunk("profile/get", async (_, thunkAPI) => {
+//   try {
+//     const response = await fetch(PROFILE, {
+//       method: 'GET',
+//       credentials: 'include',
+//       // redirect: 'follow', // default, just for clarity
+//     });
+
+//     // Check if redirected to login
+//     const contentType = response.headers.get("content-type");
+
+//     if (response.redirected || response.url.includes("/login")) {
+//       console.warn("Redirected to login. Session expired.");
+//       window.location.href = REDIRECT_LOGIN; // or your login route
+//       return thunkAPI.rejectWithValue("Session expired");
+//     }
+
+//     if (!response.ok) {
+//       const errorText = await response.text();
+//       throw new Error(errorText || "Unknown error");
+//     }
+
+//     // If it's not JSON (e.g., HTML), likely session is invalid
+//     if (!contentType || !contentType.includes("application/json")) {
+//       console.warn("Non-JSON response. Likely session expired.");
+//       window.location.href = REDIRECT_LOGIN;
+//       return thunkAPI.rejectWithValue("Session expired");
+//     }
+
+//     const data = await response.json();
+//     return data;
+
+//   } catch (error) {
+//     console.error("Fetch error:", error);
+//     window.location.href = REDIRECT_LOGIN; // fallback for unknown errors
+//     return thunkAPI.rejectWithValue("Session expired or unknown error");
+//   }
+// });
+
+// Change Password Function
+export const changePassword = async (passwordData) => {
   try {
-    const response = await axios.post(FORGOT_PASSWORD_EMAIL, formData, {
-      headers: {
-        Cookie: cookies 
-      },
-      withCredentials: true, // Required to send cookies in React Native
+    // Get user email from sessionStorage or profile
+    const userEmail = sessionStorage.getItem("userEmail") || passwordData.email;
+    
+    const requestBody = {
+      id: userEmail,
+      currentPassword: passwordData.currentPassword,
+      newPassword: passwordData.newPassword,
+      isNew: false // Set to false for regular password changes, true only for first-time setup
+    };
+
+    const response = await axios.post(CHANGE_PASSWORD, requestBody, {
+      withCredentials: true,
     });
-
-    if (response.status !== 200) {
-      throw new Error(
-        response.data?.message || "Forget failed. Please try again."
-      );
-    }
-
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error(
-        "Axios error:",
-        error.response?.data?.message || error.message
-      );
-      throw new Error(error.response?.data?.message || "Something went wrong.");
+    handleLogin(error);
+    if (error.response) {
+      const errorMessage = error.response.data?.status?.message || error.message;
+      console.error("Change Password API Error:", errorMessage);
+      throw new Error(errorMessage);
     } else {
-      throw new Error("An unexpected error occurred. Please try again.");
-    }
-  }
-};
-export const userChangePassword = async ({ formData }) => {
-  try {
-    const response = await axios.post(CHANGE_PASSWORD, formData, {
-      headers: {
-        Cookie: cookies 
-      },
-      withCredentials: true, // Required to send cookies in React Native
-    });
-
-    if (response.status !== 200) {
-      throw new Error(
-        response.data?.message || "Forget failed. Please try again."
-      );
-    }
-
-    return response.data;
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error(
-        "Axios error:",
-        error.response?.data?.message || error.message
-      );
-      throw new Error(error.response?.data?.message || "Something went wrong.");
-    } else {
-      throw new Error("An unexpected error occurred. Please try again.");
+      throw new Error("Something went wrong. Please try again.");
     }
   }
 };
