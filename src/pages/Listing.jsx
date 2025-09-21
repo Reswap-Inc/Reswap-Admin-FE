@@ -32,15 +32,15 @@ import { getListingThunk, getSearchAlllisting } from "../network/ListingThunk";
 import { getProfile } from "../network/Authapi";
 
 const tableHead = [
-  { name: "Listing ID" },
-  { name: "Property Name" },
-  { name: "Title" },
-  { name: "Unit Type" },
-  { name: "Location" },
-  { name: "View Count" },
-  { name: "Verified" },
-  { name: "Status" },
-  { name: "Actions" },
+  { id: "listingId", label: "Listing ID" },
+  { id: "propertyName", label: "Property Name" },
+  { id: "title", label: "Title" },
+  { id: "unitType", label: "Unit Type", sortable: false },
+  { id: "location", label: "Location", sortable: false },
+  { id: "viewCount", label: "View Count" },
+  { id: "verified", label: "Verified" },
+  { id: "status", label: "Status" },
+  { id: "actions", label: "Actions", sortable: false },
 ];
 
 const Listing = () => {
@@ -57,6 +57,8 @@ const Listing = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [totalElements, setTotalElements] = useState(0);
+  const [sortField, setSortField] = useState("");
+  const [sortOrder, setSortOrder] = useState("asc");
   const [status, setStatus] = useState("active");
   const searchbarResetRef = useRef(null);
   const profile = useSelector((state) => state.getProfileSlice?.data)
@@ -114,10 +116,11 @@ const Listing = () => {
       ...(searchParam && { search: `*${searchParam}*` }),
       page,
       limit: rowsPerPage,
+      ...(sortField ? { sortField, sortOrder } : {}),
     };
 
     dispatch(getSearchAlllisting(form));
-  }, [dispatch, profile?.sub, profile?.custom_fields?.isLeanAdmin, page, rowsPerPage, searchParam]);
+  }, [dispatch, profile?.sub, profile?.custom_fields?.isLeanAdmin, page, rowsPerPage, searchParam, sortField, sortOrder]);
 
 
   const [selectedDate, setSelectedDate] = useState("");
@@ -139,6 +142,15 @@ const Listing = () => {
     // dispatch(getSearchAlllisting(searchForm));
   };
 
+  const handleSort = (field) => {
+    if (!field) return;
+    setPage(0);
+    setSortOrder((prevOrder) =>
+      sortField === field ? (prevOrder === "asc" ? "desc" : "asc") : "asc"
+    );
+    setSortField(field);
+  };
+
   // Add this function to refresh listings
   const refreshListings = () => {
     const form = {
@@ -148,6 +160,7 @@ const Listing = () => {
       ...(searchParam && { search: `*${searchParam}*` }),
       page,
       limit: rowsPerPage,
+      ...(sortField ? { sortField, sortOrder } : {}),
     };
     dispatch(getSearchAlllisting(form));
   };
@@ -303,6 +316,9 @@ const Listing = () => {
             setRowsPerPage={setRowsPerPage}
             setPage={setPage}
             fordispatch={refreshListings}
+            sortField={sortField}
+            sortOrder={sortOrder}
+            onSort={handleSort}
           />
         </Box>
       ) : (

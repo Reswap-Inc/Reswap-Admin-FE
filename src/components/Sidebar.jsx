@@ -54,12 +54,9 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
 import {
- 
   MdPeople,
- 
   MdChat,
   MdNotifications,
- 
 } from "react-icons/md";
 import { useSelector } from "react-redux";
 

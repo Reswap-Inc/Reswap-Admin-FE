@@ -19,6 +19,7 @@ import {
   TextField,
   InputAdornment,
   TablePagination,
+  TableSortLabel,
   CircularProgress,
   Alert,
   Button,
@@ -42,7 +43,15 @@ import { event } from "react-ga";
 import JoyrideWrapper from '../components/JoyrideWrapper';
 
 
-const tableHead = ["Sub", "Family Name ", "Given Name", "Prefered User Name", "User Type", "Phone Number", "Action"];
+const tableHead = [
+  { id: "sub", label: "Sub" },
+  { id: "family_name", label: "Family Name" },
+  { id: "given_name", label: "Given Name" },
+  { id: "preferred_username", label: "Prefered User Name" },
+  { id: "userType", label: "User Type", sortable: false },
+  { id: "phone_number", label: "Phone Number" },
+  { id: "action", label: "Action", sortable: false },
+];
 
 
 
@@ -54,6 +63,8 @@ const UserManagement = () => {
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [searchParam, setSearchQuery] = useState("");
   const [listingid, setlistingId] = useState("");
+  const [sortField, setSortField] = useState("");
+  const [sortOrder, setSortOrder] = useState("asc");
   const handleOpen = (event) => {
     setAnchorEl(event.currentTarget); // Store the clicked icon's position
   };
@@ -130,6 +141,14 @@ console.log("bannnnnnnnnnnnn",res)
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
+  const handleSort = (field) => {
+    if (!field) return;
+    setPage(0);
+    setSortOrder((prevOrder) =>
+      sortField === field ? (prevOrder === "asc" ? "desc" : "asc") : "asc"
+    );
+    setSortField(field);
+  };
   const { listings, loading, error
   } = useSelector((state) => state.AllUserSlice);
 
@@ -139,13 +158,14 @@ console.log("bannnnnnnnnnnnn",res)
     search: `*${searchParam}*`,
     page: page, // Add +1 if your API expects 1-based page numbers
     limit: rowsPerPage,
+    ...(sortField ? { sortField, sortOrder } : {}),
   };
 
   useEffect(() => {
     console.log("form++++++++++====",page)
     dispatch(getAllUserThunk(form));
     
-  }, [dispatch, page, rowsPerPage, searchParam]);
+  }, [dispatch, page, rowsPerPage, searchParam, sortField, sortOrder]);
 
   return (
         <Box p={2} style={{ backgroundColor: "#FAFAFA" }} className="user-tour">
@@ -192,9 +212,28 @@ console.log("bannnnnnnnnnnnn",res)
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: "#EFFEF7" }}>
-                {tableHead.map((header, index) => (
-                  <TableCell key={index}>{header}</TableCell>
-                ))}
+                {tableHead.map((column) => {
+                  const isActive = sortField === column.id;
+                  const isSortable = column.sortable !== false && column.id && column.id !== "action";
+                  return (
+                    <TableCell
+                      key={column.id || column.label}
+                      sortDirection={isActive ? sortOrder : false}
+                    >
+                      {isSortable ? (
+                        <TableSortLabel
+                          active={isActive}
+                          direction={isActive ? sortOrder : "asc"}
+                          onClick={() => handleSort(column.id)}
+                        >
+                          {column.label}
+                        </TableSortLabel>
+                      ) : (
+                        column.label
+                      )}
+                    </TableCell>
+                  );
+                })}
               </TableRow>
             </TableHead>
             

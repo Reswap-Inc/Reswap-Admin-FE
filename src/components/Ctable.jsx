@@ -16,6 +16,7 @@ import {
   ListItemIcon,
   ListItemText,
   TablePagination,
+  TableSortLabel,
   Typography,
   Modal,
   Button,
@@ -43,7 +44,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useSelector } from "react-redux";
 
-const Ctable = ({ tableHead, rowData, tableName, pagination, setPage, setRowsPerPage, fordispatch }) => {
+const Ctable = ({ tableHead, rowData, tableName, pagination, setPage, setRowsPerPage, fordispatch, sortField = "", sortOrder = "asc", onSort }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [row, setRowData] = useState(null);
 
@@ -188,21 +189,47 @@ const Ctable = ({ tableHead, rowData, tableName, pagination, setPage, setRowsPer
         <Table sx={{ width: "100%", fontFamily: "Open Sans" }} aria-label="dynamic table">
           <TableHead>
             <TableRow sx={{ bgcolor: "#737373" }}>
-              {tableHead.map((header, index) => (
-                <TableCell
-                  key={index}
-                  sx={{
-                    bgcolor: "#EFFEF7",
-                    color: "#1A1F2D",
-                    fontFamily: "Open Sans",
-                    fontSize: isMobile ? "0.75rem" : "0.875rem",
-                    padding: isMobile ? "8px 4px" : "16px",
-                    whiteSpace: "nowrap"
-                  }}
-                >
-                  {header.name}
-                </TableCell>
-              ))}
+              {tableHead.map((header, index) => {
+                const columnId =
+                  typeof header === "object"
+                    ? header.id || header.key || header.name || header.label
+                    : header;
+                const label =
+                  typeof header === "object"
+                    ? header.label || header.name || header.id || ""
+                    : header;
+                const isSortable =
+                  Boolean(onSort) &&
+                  Boolean(columnId) &&
+                  (typeof header === "object" ? header.sortable !== false : false);
+                const isActive = isSortable && sortField === columnId;
+                return (
+                  <TableCell
+                    key={columnId || label || index}
+                    sx={{
+                      bgcolor: "#EFFEF7",
+                      color: "#1A1F2D",
+                      fontFamily: "Open Sans",
+                      fontSize: isMobile ? "0.75rem" : "0.875rem",
+                      padding: isMobile ? "8px 4px" : "16px",
+                      whiteSpace: "nowrap"
+                    }}
+                    sortDirection={isActive ? sortOrder : false}
+                  >
+                    {isSortable ? (
+                      <TableSortLabel
+                        active={isActive}
+                        direction={isActive ? sortOrder : "asc"}
+                        onClick={() => onSort(columnId)}
+                      >
+                        {label}
+                      </TableSortLabel>
+                    ) : (
+                      label
+                    )}
+                  </TableCell>
+                );
+              })}
             </TableRow>
           </TableHead>
 
