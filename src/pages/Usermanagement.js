@@ -25,6 +25,9 @@ import {
   Button,
   Typography,
   Modal,
+  Tabs,
+  Tab,
+  Divider,
   Checkbox,
   Stack,
   FormControl,
@@ -45,11 +48,14 @@ import {
   Add as AddIcon,
   FilterList as FilterListIcon,
   NotificationsActive as NotificationsActiveIcon,
+  Delete as DeleteIcon,
+  CloudUpload as CloudUploadIcon,
 } from "@mui/icons-material";
 import AddButton from "../components/AddButton";
 import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
 import { banUser, getAllUserThunk } from "../network/GetAllUser";
+import { SEND_SMS, SEND_EMAIL, SEND_NOTIFICATION } from "../redux/endpoint";
 import { toast } from "react-toastify";
 import { event } from "react-ga";
 import JoyrideWrapper from '../components/JoyrideWrapper';
@@ -62,6 +68,39 @@ const FILTER_DEFAULTS = {
   givenName: '',
   preferredUsername: '',
   phoneNumber: '',
+};
+
+const SMS_DEFAULTS = {
+  from: 'System',
+  templateName: '',
+  variables: '',
+  priority: 'LOW',
+  millisOffset: '0',
+};
+
+const EMAIL_DEFAULTS = {
+  subject: '',
+  contentType: 'plain/text',
+  content: '',
+  priority: 'LOW',
+  additionalRecipients: '',
+  cc: '',
+  bcc: '',
+  attachments: [],
+};
+
+const NOTIFICATION_DEFAULTS = {
+  subject: '',
+  contentType: 'plain/text',
+  content: '',
+  priority: 'LOW',
+  icon: '',
+  type: '',
+  sender: 'system',
+  redirectWeb: '',
+  redirectAndroid: '',
+  redirectIos: '',
+  paramContext: '',
 };
 
 const normalizeSub = (sub) => {
@@ -96,6 +135,12 @@ const UserManagement = () => {
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const [selectedUserSubs, setSelectedUserSubs] = useState(() => []);
   const [isNotifyDialogOpen, setIsNotifyDialogOpen] = useState(false);
+  const [activeNotifyTab, setActiveNotifyTab] = useState('sms');
+  const [smsForm, setSmsForm] = useState(() => ({ ...SMS_DEFAULTS }));
+  const [emailForm, setEmailForm] = useState(() => ({ ...EMAIL_DEFAULTS }));
+  const [notificationForm, setNotificationForm] = useState(() => ({ ...NOTIFICATION_DEFAULTS }));
+  const [notifyLoading, setNotifyLoading] = useState(false);
+  const [notifyResult, setNotifyResult] = useState(null);
   const handleOpen = (event) => {
     setAnchorEl(event.currentTarget); // Store the clicked icon's position
   };
@@ -104,6 +149,70 @@ const UserManagement = () => {
     setAnchorEl(null);
   };
   const [message, setMessage] = useState("");
+
+  const parseCommaSeparated = (value) => {
+    if (!value) return [];
+    return value.split(',').map((item) => item.trim()).filter(Boolean);
+  };
+
+  const buildNotifyResult = (channel, ok, data) => {
+    const payload = data?.body ?? data ?? null;
+    const statusMeta = data?.status ?? payload?.status;
+    const isError = !ok || statusMeta?.error === true || payload?.success === false;
+    if (isError || !payload) {
+      const errorMessage = statusMeta?.message || payload?.message || payload?.error || 'Failed to send message.';
+      const details = payload ? [JSON.stringify(payload)] : [];
+      return { status: 'error', summary: errorMessage, details };
+    }
+
+    if (channel === 'sms') {
+      const successCount = payload?.successCount ?? 0;
+      const failureCount = payload?.failureCount ?? 0;
+      const details = Array.isArray(payload?.results)
+        ? payload.results.map((item) => `${item.phoneNumber || item.userId || 'recipient'}: ${item.success ? 'Success' : 'Failed'}`)
+        : [];
+      const summaryMessage = statusMeta?.message || 'SMS sent successfully';
+      return {
+        status: 'success',
+        summary: `${summaryMessage}. Success: ${successCount}, Failures: ${failureCount}`,
+        details,
+      };
+    }
+
+    if (channel === 'email') {
+      const accepted = Array.isArray(payload?.accepted) ? payload.accepted : [];
+      const rejected = Array.isArray(payload?.rejected) ? payload.rejected : [];
+      const details = [
+        ...accepted.map((addr) => `Accepted: ${addr}`),
+        ...rejected.map((addr) => `Rejected: ${addr}`),
+      ];
+      const summaryMessage = statusMeta?.message || payload?.message || 'Email sent successfully';
+      return {
+        status: 'success',
+        summary: `${summaryMessage}. Accepted: ${accepted.length}, Rejected: ${rejected.length}`,
+        details,
+      };
+    }
+
+    const counts = payload?.counts || {};
+    const success = counts.success ?? (Array.isArray(payload?.successes) ? payload.successes.length : 0);
+    const failure = counts.failure ?? (Array.isArray(payload?.failures) ? payload.failures.length : 0);
+    const details = [
+      ...(Array.isArray(payload?.successes)
+        ? payload.successes.map((item) => `Success: ${item.token || item.userId || item.platform || 'recipient'}`)
+        : []),
+      ...(Array.isArray(payload?.failures)
+        ? payload.failures.map((item) => `Failure: ${item.token || item.userId || 'recipient'} - ${item.error?.message || 'Unknown error'}`)
+        : []),
+    ];
+    const summaryMessage = statusMeta?.message || 'Notifications queued';
+    return {
+      status: 'success',
+      summary: `${summaryMessage}. Success: ${success}, Failures: ${failure}`,
+      details,
+    };
+  };
+
 
   const filterPayload = useMemo(() => {
     const payload = {};
@@ -276,13 +385,236 @@ console.log("bannnnnnnnnnnnn",res)
     setSelectedUserSubs([]);
   };
 
+  const readFileAsBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result;
+        if (typeof result === 'string') {
+          const base64 = result.includes(',') ? result.split(',')[1] : result;
+          resolve(base64);
+        } else {
+          reject(new Error('Unable to read file.'));
+        }
+      };
+      reader.onerror = () => reject(reader.error || new Error('Unable to read file.'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes || Number.isNaN(bytes)) return '';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let size = bytes;
+    let unitIndex = 0;
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex += 1;
+    }
+    return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+  };
+
+  const handleEmailAttachmentsChange = async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    try {
+      const attachments = await Promise.all(
+        files.map(async (file) => {
+          const content = await readFileAsBase64(file);
+          return {
+            filename: file.name,
+            content,
+            encoding: 'base64',
+            contentType: file.type || 'application/octet-stream',
+            size: file.size,
+          };
+        })
+      );
+
+      setEmailForm((prev) => ({
+        ...prev,
+        attachments: [...prev.attachments, ...attachments],
+      }));
+      if (event.target) {
+        event.target.value = '';
+      }
+    } catch (error) {
+      setNotifyResult({
+        status: 'error',
+        summary: error?.message || 'Failed to process attachments.',
+        details: [],
+      });
+    }
+  };
+
+  const handleRemoveEmailAttachment = (index) => {
+    setEmailForm((prev) => ({
+      ...prev,
+      attachments: prev.attachments.filter((_, attachmentIndex) => attachmentIndex !== index),
+    }));
+  };
+
   const handleOpenNotifyDialog = () => {
     if (selectedUserSubs.length === 0) return;
+    setActiveNotifyTab('sms');
+    setSmsForm({ ...SMS_DEFAULTS });
+    setEmailForm({ ...EMAIL_DEFAULTS });
+    setNotificationForm({ ...NOTIFICATION_DEFAULTS });
+    setNotifyResult(null);
+    setNotifyLoading(false);
     setIsNotifyDialogOpen(true);
   };
 
   const handleCloseNotifyDialog = () => {
     setIsNotifyDialogOpen(false);
+    setNotifyResult(null);
+    setNotifyLoading(false);
+  };
+
+  const handleNotifySubmit = async () => {
+    if (notifyLoading) return;
+    const recipients = Array.from(selectedSubsSet);
+    if (recipients.length === 0) {
+      setNotifyResult({
+        status: 'error',
+        summary: 'Select at least one user to notify.',
+        details: [],
+      });
+      return;
+    }
+
+    if (activeNotifyTab === 'sms' && !smsForm.templateName.trim()) {
+      setNotifyResult({ status: 'error', summary: 'Please provide a template name for SMS.', details: [] });
+      return;
+    }
+
+    if (activeNotifyTab === 'email') {
+      if (!emailForm.subject.trim()) {
+        setNotifyResult({ status: 'error', summary: 'Email subject is required.', details: [] });
+        return;
+      }
+      if (!emailForm.content.trim()) {
+        setNotifyResult({ status: 'error', summary: 'Email content is required.', details: [] });
+        return;
+      }
+    }
+
+    if (activeNotifyTab === 'notification') {
+      if (!notificationForm.subject.trim()) {
+        setNotifyResult({ status: 'error', summary: 'Notification subject is required.', details: [] });
+        return;
+      }
+      if (!notificationForm.content.trim()) {
+        setNotifyResult({ status: 'error', summary: 'Notification content is required.', details: [] });
+        return;
+      }
+    }
+
+    setNotifyLoading(true);
+    setNotifyResult(null);
+
+    try {
+      let endpoint = '';
+      let payload = {};
+
+      if (activeNotifyTab === 'sms') {
+        const variables = parseCommaSeparated(smsForm.variables);
+        payload = {
+          from: smsForm.from?.trim() || 'System',
+          toType: 'user',
+          to: recipients.length === 1 ? recipients[0] : recipients,
+          templateName: smsForm.templateName.trim(),
+          variables,
+          priority: smsForm.priority,
+          millisOffset: Number(smsForm.millisOffset) || 0,
+        };
+        endpoint = SEND_SMS;
+      } else if (activeNotifyTab === 'email') {
+        const userRecipients = recipients.map((sub) => ({ to: sub, toType: 'user' }));
+        const additionalTo = parseCommaSeparated(emailForm.additionalRecipients).map((email) => ({
+          to: email,
+          toType: 'email',
+        }));
+        const ccRecipients = parseCommaSeparated(emailForm.cc).map((email) => ({
+          to: email,
+          toType: 'email',
+        }));
+        const bccRecipients = parseCommaSeparated(emailForm.bcc).map((email) => ({
+          to: email,
+          toType: 'email',
+        }));
+        const attachmentsPayload = emailForm.attachments.map(({ filename, content, encoding, contentType }) => ({
+          filename,
+          content,
+          encoding,
+          contentType,
+        }));
+        payload = {
+          to: [...userRecipients, ...additionalTo],
+          subject: emailForm.subject.trim(),
+          contentType: emailForm.contentType,
+          content: emailForm.content,
+          priority: emailForm.priority,
+          attachments: attachmentsPayload,
+        };
+        if (ccRecipients.length) {
+          payload.cc = ccRecipients;
+        }
+        if (bccRecipients.length) {
+          payload.bcc = bccRecipients;
+        }
+        endpoint = SEND_EMAIL;
+      } else {
+        const target = recipients.length === 1 ? recipients[0] : recipients;
+        payload = {
+          to: target,
+          priority: notificationForm.priority,
+          subject: notificationForm.subject.trim(),
+          content: notificationForm.content,
+          contentType: notificationForm.contentType,
+          sender: notificationForm.sender?.trim() || undefined,
+          icon: notificationForm.icon?.trim() || undefined,
+          type: notificationForm.type?.trim() || undefined,
+        };
+        const redirects = {};
+        if (notificationForm.redirectWeb?.trim()) redirects.onClickWeb = notificationForm.redirectWeb.trim();
+        if (notificationForm.redirectAndroid?.trim()) redirects.onClickAndroid = notificationForm.redirectAndroid.trim();
+        if (notificationForm.redirectIos?.trim()) redirects.onClickIos = notificationForm.redirectIos.trim();
+        if (Object.keys(redirects).length) {
+          payload.redirects = redirects;
+        }
+        if (notificationForm.paramContext?.trim()) {
+          payload.params = { context: notificationForm.paramContext.trim() };
+        }
+        endpoint = SEND_NOTIFICATION;
+      }
+
+      const cleanPayload = JSON.parse(JSON.stringify(payload));
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(cleanPayload),
+      });
+
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (error) {
+        data = null;
+      }
+
+      const result = buildNotifyResult(activeNotifyTab, response.ok, data);
+      setNotifyResult(result);
+    } catch (error) {
+      setNotifyResult({
+        status: 'error',
+        summary: error.message || 'Unexpected error while sending notification.',
+        details: [],
+      });
+    } finally {
+      setNotifyLoading(false);
+    }
   };
 
   const handleSearch = (event) => {
@@ -321,8 +653,8 @@ console.log("bannnnnnnnnnnnn",res)
   console.log(listings, "Users");
   const pagination = listings?.pagination;
   const currentRows = listings?.body || [];
-  const selectedSubsSet = useMemo(() => new Set(selectedUserSubs), [selectedUserSubs]);
-  const selectedCount = selectedUserSubs.length;
+  const selectedSubsSet = useMemo(() => new Set(selectedUserSubs.map((sub) => normalizeSub(sub)).filter(Boolean)), [selectedUserSubs]);
+  const selectedCount = selectedSubsSet.size;
   const allCurrentSelected = currentRows.length > 0 && currentRows.every((row) => {
     const normalized = normalizeSub(row?.sub);
     return normalized && selectedSubsSet.has(normalized);
@@ -597,15 +929,306 @@ console.log("bannnnnnnnnnnnn",res)
       <Dialog open={isNotifyDialogOpen} onClose={handleCloseNotifyDialog} fullWidth maxWidth="sm">
         <DialogTitle>Notify Users</DialogTitle>
         <DialogContent dividers>
-          <Typography variant="body2" color="text.secondary">
-            Notification message configuration coming soon.
-          </Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-            Selected users: {selectedCount}
-          </Typography>
+          <Stack spacing={2}>
+            <Typography variant="body2">Sending to {selectedCount} selected user{selectedCount === 1 ? '' : 's'}.</Typography>
+            <Tabs
+              value={activeNotifyTab}
+              onChange={(_, tabValue) => setActiveNotifyTab(tabValue)}
+              indicatorColor="primary"
+              textColor="primary"
+              variant="fullWidth"
+            >
+              <Tab value="sms" label="SMS" />
+              <Tab value="email" label="Email" />
+              <Tab value="notification" label="Notification" />
+            </Tabs>
+            <Divider />
+
+            {activeNotifyTab === 'sms' && (
+              <Stack spacing={2}>
+                <TextField
+                  label="Sender"
+                  value={smsForm.from}
+                  onChange={(event) => setSmsForm((prev) => ({ ...prev, from: event.target.value }))}
+                  fullWidth
+                />
+                <TextField
+                  label="Template Name"
+                  value={smsForm.templateName}
+                  onChange={(event) => setSmsForm((prev) => ({ ...prev, templateName: event.target.value }))}
+                  fullWidth
+                  required
+                />
+                <TextField
+                  label="Variables (comma separated)"
+                  value={smsForm.variables}
+                  onChange={(event) => setSmsForm((prev) => ({ ...prev, variables: event.target.value }))}
+                  fullWidth
+                  helperText="Optional. Example: 123456,987654"
+                />
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <TextField
+                    select
+                    label="Priority"
+                    value={smsForm.priority}
+                    onChange={(event) => setSmsForm((prev) => ({ ...prev, priority: event.target.value }))}
+                    sx={{ minWidth: 160 }}
+                  >
+                    {['LOW', 'MEDIUM', 'HIGH'].map((option) => (
+                      <MenuItem key={option} value={option}>
+                        {option}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField
+                    label="Schedule Offset (ms)"
+                    type="number"
+                    value={smsForm.millisOffset}
+                    onChange={(event) => setSmsForm((prev) => ({ ...prev, millisOffset: event.target.value }))}
+                    helperText="Delay before sending (optional)"
+                    fullWidth
+                  />
+                </Stack>
+              </Stack>
+            )}
+
+            {activeNotifyTab === 'email' && (
+              <Stack spacing={2}>
+                <TextField
+                  label="Subject"
+                  value={emailForm.subject}
+                  onChange={(event) => setEmailForm((prev) => ({ ...prev, subject: event.target.value }))}
+                  fullWidth
+                  required
+                />
+                <TextField
+                  select
+                  label="Content Type"
+                  value={emailForm.contentType}
+                  onChange={(event) => setEmailForm((prev) => ({ ...prev, contentType: event.target.value }))}
+                  sx={{ minWidth: 200 }}
+                >
+                  {['plain/text', 'text/html'].map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {option}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  label="Content"
+                  value={emailForm.content}
+                  onChange={(event) => setEmailForm((prev) => ({ ...prev, content: event.target.value }))}
+                  fullWidth
+                  multiline
+                  minRows={4}
+                  required
+                />
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <TextField
+                    select
+                    label="Priority"
+                    value={emailForm.priority}
+                    onChange={(event) => setEmailForm((prev) => ({ ...prev, priority: event.target.value }))}
+                    sx={{ minWidth: 160 }}
+                  >
+                    {['LOW', 'MEDIUM', 'HIGH'].map((option) => (
+                      <MenuItem key={option} value={option}>
+                        {option}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField
+                    label="Additional Recipients (emails)"
+                    value={emailForm.additionalRecipients}
+                    onChange={(event) => setEmailForm((prev) => ({ ...prev, additionalRecipients: event.target.value }))}
+                    helperText="Comma separated list. Optional."
+                    fullWidth
+                  />
+                </Stack>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <TextField
+                    label="CC (emails)"
+                    value={emailForm.cc}
+                    onChange={(event) => setEmailForm((prev) => ({ ...prev, cc: event.target.value }))}
+                    helperText="Comma separated list. Optional."
+                    fullWidth
+                  />
+                  <TextField
+                    label="BCC (emails)"
+                    value={emailForm.bcc}
+                    onChange={(event) => setEmailForm((prev) => ({ ...prev, bcc: event.target.value }))}
+                    helperText="Comma separated list. Optional."
+                    fullWidth
+                  />
+                </Stack>
+                <Stack spacing={1}>
+                  <Button
+                    variant="outlined"
+                    startIcon={<CloudUploadIcon />}
+                    component="label"
+                    sx={{ alignSelf: 'flex-start' }}
+                  >
+                    Add Attachments
+                    <input hidden type="file" multiple onChange={handleEmailAttachmentsChange} />
+                  </Button>
+                  {emailForm.attachments.length > 0 && (
+                    <Stack spacing={0.5}>
+                      <Typography variant="caption" color="text.secondary">
+                        Attachments:
+                      </Typography>
+                      {emailForm.attachments.map((attachment, index) => (
+                        <Stack
+                          key={`${attachment.filename}-${index}`}
+                          direction="row"
+                          spacing={1}
+                          alignItems="center"
+                          sx={{ maxWidth: '100%' }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{ flexGrow: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                          >
+                            {attachment.filename}
+                            {attachment.size ? ` (${formatFileSize(attachment.size)})` : ''}
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            aria-label={`remove attachment ${attachment.filename}`}
+                            onClick={() => handleRemoveEmailAttachment(index)}
+                          >
+                            <DeleteIcon fontSize="inherit" />
+                          </IconButton>
+                        </Stack>
+                      ))}
+                    </Stack>
+                  )}
+                </Stack>
+              </Stack>
+            )}
+            {activeNotifyTab === 'notification' && (
+              <Stack spacing={2}>
+                <TextField
+                  label="Subject"
+                  value={notificationForm.subject}
+                  onChange={(event) => setNotificationForm((prev) => ({ ...prev, subject: event.target.value }))}
+                  fullWidth
+                  required
+                />
+                <TextField
+                  select
+                  label="Content Type"
+                  value={notificationForm.contentType}
+                  onChange={(event) => setNotificationForm((prev) => ({ ...prev, contentType: event.target.value }))}
+                  sx={{ minWidth: 200 }}
+                >
+                  {['plain/text', 'text/html'].map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {option}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  label="Content"
+                  value={notificationForm.content}
+                  onChange={(event) => setNotificationForm((prev) => ({ ...prev, content: event.target.value }))}
+                  fullWidth
+                  multiline
+                  minRows={4}
+                  required
+                />
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <TextField
+                    select
+                    label="Priority"
+                    value={notificationForm.priority}
+                    onChange={(event) => setNotificationForm((prev) => ({ ...prev, priority: event.target.value }))}
+                    sx={{ minWidth: 160 }}
+                  >
+                    {['LOW', 'MEDIUM', 'HIGH'].map((option) => (
+                      <MenuItem key={option} value={option}>
+                        {option}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField
+                    label="Sender"
+                    value={notificationForm.sender}
+                    onChange={(event) => setNotificationForm((prev) => ({ ...prev, sender: event.target.value }))}
+                    fullWidth
+                  />
+                </Stack>
+                <TextField
+                  label="Icon URL"
+                  value={notificationForm.icon}
+                  onChange={(event) => setNotificationForm((prev) => ({ ...prev, icon: event.target.value }))}
+                  fullWidth
+                />
+                <TextField
+                  label="Type"
+                  value={notificationForm.type}
+                  onChange={(event) => setNotificationForm((prev) => ({ ...prev, type: event.target.value }))}
+                  helperText="Optional. e.g. confirm"
+                  fullWidth
+                />
+                <TextField
+                  label="Web Redirect URL"
+                  value={notificationForm.redirectWeb}
+                  onChange={(event) => setNotificationForm((prev) => ({ ...prev, redirectWeb: event.target.value }))}
+                  fullWidth
+                />
+                <TextField
+                  label="Android Redirect"
+                  value={notificationForm.redirectAndroid}
+                  onChange={(event) => setNotificationForm((prev) => ({ ...prev, redirectAndroid: event.target.value }))}
+                  fullWidth
+                />
+                <TextField
+                  label="iOS Redirect"
+                  value={notificationForm.redirectIos}
+                  onChange={(event) => setNotificationForm((prev) => ({ ...prev, redirectIos: event.target.value }))}
+                  fullWidth
+                />
+                <TextField
+                  label="Context Param"
+                  value={notificationForm.paramContext}
+                  onChange={(event) => setNotificationForm((prev) => ({ ...prev, paramContext: event.target.value }))}
+                  helperText="Optional context value sent as params.context"
+                  fullWidth
+                />
+              </Stack>
+            )}
+
+            {notifyResult && (
+              <Alert severity={notifyResult.status === 'success' ? 'success' : 'error'}>
+                <Stack spacing={1}>
+                  <Typography variant="body2">{notifyResult.summary}</Typography>
+                  {notifyResult.details?.length ? (
+                    <Box component="ul" sx={{ pl: 2, mb: 0 }}>
+                      {notifyResult.details.map((detail, index) => (
+                        <Typography component="li" variant="caption" key={index}>
+                          {detail}
+                        </Typography>
+                      ))}
+                    </Box>
+                  ) : null}
+                </Stack>
+              </Alert>
+            )}
+          </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseNotifyDialog}>Close</Button>
+        <DialogActions sx={{ justifyContent: 'space-between' }}>
+          <Stack direction="row" spacing={1}>
+            <Button onClick={handleCloseNotifyDialog} disabled={notifyLoading}>
+              Close
+            </Button>
+          </Stack>
+          <Button
+            variant="contained"
+            onClick={handleNotifySubmit}
+            disabled={notifyLoading || selectedSubsSet.size === 0}
+          >
+            {notifyLoading ? 'Sending...' : 'Send'}
+          </Button>
         </DialogActions>
       </Dialog>
 

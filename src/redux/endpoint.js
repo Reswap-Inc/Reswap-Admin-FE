@@ -34,6 +34,9 @@ export const GET_ALL_NOTIFICATION = `${BASE_URL}/api/general/${VERSION}/getAllNo
 export const SEE_NOTIFICATION = `${BASE_URL}/api/general/${VERSION}/seeNotification`;
 export const DELETE_NOTIFICATION = `${BASE_URL}/api/general/${VERSION}/deleteNotification`;
 export const DELETE_DEVICES = `${BASE_URL}/api/general/${VERSION}/deleteDevice`;
+export const SEND_SMS = `${BASE_URL}/api/general/${VERSION}/sendSms`;
+export const SEND_EMAIL = `${BASE_URL}/api/general/${VERSION}/sendEmail`;
+export const SEND_NOTIFICATION = `${BASE_URL}/api/general/${VERSION}/sendNotification`;
 
 //Fashion/Essentials
 
