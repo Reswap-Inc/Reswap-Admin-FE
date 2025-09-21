@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Ctable from "../components/Ctable";
 import AddButton from "../components/AddButton";
@@ -17,6 +17,11 @@ import {
   CircularProgress,
   TextField,
   InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Stack,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
@@ -28,8 +33,17 @@ import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 // import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import FilterListIcon from "@mui/icons-material/FilterList";
 
-import { getListingThunk, getSearchAlllisting } from "../network/ListingThunk";
+import { getSearchAlllisting } from "../network/ListingThunk";
 import { getProfile } from "../network/Authapi";
+
+const FILTER_DEFAULTS = {
+  verified: 'all',
+  minViewCount: '',
+  maxViewCount: '',
+  propertyName: '',
+  city: '',
+  unitType: '',
+};
 
 const tableHead = [
   { id: "listingId", label: "Listing ID" },
@@ -59,8 +73,86 @@ const Listing = () => {
   const [totalElements, setTotalElements] = useState(0);
   const [sortField, setSortField] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
-  const [status, setStatus] = useState("active");
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [filters, setFilters] = useState(() => ({ ...FILTER_DEFAULTS }));
+  const [filterDraft, setFilterDraft] = useState(() => ({ ...FILTER_DEFAULTS }));
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
   const searchbarResetRef = useRef(null);
+  const filterPayload = useMemo(() => {
+    const payload = {};
+
+    if (statusFilter && statusFilter !== 'all') {
+      payload.status = statusFilter;
+    }
+
+    if (filters.verified && filters.verified !== 'all') {
+      payload.verified = filters.verified === 'true';
+    }
+
+    const parseNumeric = (value) => {
+      if (value === undefined || value === null) return null;
+      const trimmed = value.toString().trim();
+      if (trimmed === '') return null;
+      const parsed = Number(trimmed);
+      return Number.isNaN(parsed) ? null : parsed;
+    };
+
+    const minViews = parseNumeric(filters.minViewCount);
+    const maxViews = parseNumeric(filters.maxViewCount);
+    if (minViews !== null || maxViews !== null) {
+      const viewCountFilter = {};
+      if (minViews !== null) viewCountFilter.$gte = minViews;
+      if (maxViews !== null) viewCountFilter.$lte = maxViews;
+      if (Object.keys(viewCountFilter).length > 0) {
+        payload.viewCount = viewCountFilter;
+      }
+    }
+
+    const propertyName = typeof filters.propertyName === 'string' ? filters.propertyName.trim() : '';
+    if (propertyName) {
+      payload.propertyName = `*${propertyName}*`;
+    }
+
+    const city = typeof filters.city === 'string' ? filters.city.trim() : '';
+    if (city) {
+      payload['location.city'] = `*${city}*`;
+    }
+
+    const unitType = typeof filters.unitType === 'string' ? filters.unitType.trim() : '';
+    if (unitType) {
+      payload['unitType.name'] = `*${unitType}*`;
+    }
+
+    return payload;
+  }, [filters, statusFilter]);
+
+  const hasActiveFilters = useMemo(() => {
+    const { verified, minViewCount, maxViewCount, propertyName, city, unitType } = filters;
+    const hasValue = (value) => {
+      if (value === undefined || value === null) return false;
+      if (typeof value === 'string') {
+        return value.trim().length > 0;
+      }
+      return true;
+    };
+
+    const hasMinViews = hasValue(minViewCount);
+    const hasMaxViews = hasValue(maxViewCount);
+    const hasPropertyName = hasValue(propertyName);
+    const hasCity = hasValue(city);
+    const hasUnitType = hasValue(unitType);
+
+    return (
+      (statusFilter && statusFilter !== 'all') ||
+      (verified && verified !== 'all') ||
+      hasMinViews ||
+      hasMaxViews ||
+      hasPropertyName ||
+      hasCity ||
+      hasUnitType
+    );
+  }, [filters, statusFilter]);
+
   const profile = useSelector((state) => state.getProfileSlice?.data)
   // console.log("profile=========>>>>>>", profile)
   const resetSearch = () => {
@@ -117,10 +209,11 @@ const Listing = () => {
       page,
       limit: rowsPerPage,
       ...(sortField ? { sortField, sortOrder } : {}),
+      ...filterPayload,
     };
 
     dispatch(getSearchAlllisting(form));
-  }, [dispatch, profile?.sub, profile?.custom_fields?.isLeanAdmin, page, rowsPerPage, searchParam, sortField, sortOrder]);
+  }, [dispatch, profile?.sub, profile?.custom_fields?.isLeanAdmin, page, rowsPerPage, searchParam, sortField, sortOrder, filterPayload]);
 
 
   const [selectedDate, setSelectedDate] = useState("");
@@ -142,6 +235,39 @@ const Listing = () => {
     // dispatch(getSearchAlllisting(searchForm));
   };
 
+  const handleOpenFilterDialog = () => {
+    setFilterDraft({ ...filters });
+    setIsFilterDialogOpen(true);
+  };
+
+  const handleCloseFilterDialog = () => {
+    setIsFilterDialogOpen(false);
+  };
+
+  const handleFilterDraftChange = (field) => (event) => {
+    const value = event?.target?.value ?? '';
+    setFilterDraft((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleFilterReset = () => {
+    setFilterDraft({ ...FILTER_DEFAULTS });
+  };
+
+  const handleFilterApply = () => {
+    setFilters({ ...filterDraft });
+    setIsFilterDialogOpen(false);
+    setPage(0);
+  };
+
+  const handleClearAllFilters = () => {
+    const reset = { ...FILTER_DEFAULTS };
+    setFilters(reset);
+    setFilterDraft(reset);
+    setStatusFilter('all');
+    setIsFilterDialogOpen(false);
+    setPage(0);
+  };
+
   const handleSort = (field) => {
     if (!field) return;
     setPage(0);
@@ -151,7 +277,6 @@ const Listing = () => {
     setSortField(field);
   };
 
-  // Add this function to refresh listings
   const refreshListings = () => {
     const form = {
       ...(profile?.custom_fields?.isLeanAdmin && !profile?.params?.Roles && {
@@ -161,6 +286,7 @@ const Listing = () => {
       page,
       limit: rowsPerPage,
       ...(sortField ? { sortField, sortOrder } : {}),
+      ...filterPayload,
     };
     dispatch(getSearchAlllisting(form));
   };
@@ -191,9 +317,13 @@ const Listing = () => {
           }}
         >
           <ToggleButtonGroup
-            value={status}
+            value={statusFilter}
             exclusive
-            onChange={(_, newValue) => newValue && setStatus(newValue)}
+            onChange={(_, newValue) => {
+              if (newValue === null) return;
+              setStatusFilter(newValue);
+              setPage(0);
+            }}
             sx={{
               "& .MuiToggleButton-root": {
                 border: "none",
@@ -207,10 +337,15 @@ const Listing = () => {
                   backgroundColor: "transparent",
                 },
               },
+              overflowX: 'auto',
             }}
           >
+            <ToggleButton value="all">All</ToggleButton>
             <ToggleButton value="active">Active</ToggleButton>
-            {/* <ToggleButton value="archive">Archive</ToggleButton> */}
+            <ToggleButton value="pending">Pending</ToggleButton>
+            <ToggleButton value="inactive">Inactive</ToggleButton>
+            <ToggleButton value="draft">Draft</ToggleButton>
+            <ToggleButton value="rejected">Rejected</ToggleButton>
           </ToggleButtonGroup>
         </Box>
 
@@ -288,7 +423,11 @@ const Listing = () => {
           // }}
           /> */}
           {/* Additional Filter Icon */}
-          <IconButton title="comming soon">
+          <IconButton
+            title="Filters"
+            color={hasActiveFilters ? 'primary' : 'default'}
+            onClick={handleOpenFilterDialog}
+          >
             <FilterListIcon />
           </IconButton>
 
@@ -335,6 +474,82 @@ const Listing = () => {
       )}
 
 
+      <Dialog open={isFilterDialogOpen} onClose={handleCloseFilterDialog} fullWidth maxWidth="sm">
+        <DialogTitle>Filter Listings</DialogTitle>
+        <DialogContent dividers>
+          <Stack spacing={2}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="filter-verified-label">Verification</InputLabel>
+              <Select
+                labelId="filter-verified-label"
+                label="Verification"
+                value={filterDraft.verified}
+                onChange={handleFilterDraftChange('verified')}
+              >
+                <MenuItem value="all">All</MenuItem>
+                <MenuItem value="true">Verified</MenuItem>
+                <MenuItem value="false">Not Verified</MenuItem>
+              </Select>
+            </FormControl>
+
+            <TextField
+              label="Property Name"
+              size="small"
+              value={filterDraft.propertyName}
+              onChange={handleFilterDraftChange('propertyName')}
+              placeholder="e.g. Downtown Apartments"
+            />
+
+            <TextField
+              label="Unit Type"
+              size="small"
+              value={filterDraft.unitType}
+              onChange={handleFilterDraftChange('unitType')}
+              placeholder="e.g. Studio"
+            />
+
+            <TextField
+              label="City"
+              size="small"
+              value={filterDraft.city}
+              onChange={handleFilterDraftChange('city')}
+              placeholder="e.g. New York"
+            />
+
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField
+                label="Min View Count"
+                type="number"
+                size="small"
+                value={filterDraft.minViewCount}
+                onChange={handleFilterDraftChange('minViewCount')}
+                inputProps={{ min: 0 }}
+              />
+              <TextField
+                label="Max View Count"
+                type="number"
+                size="small"
+                value={filterDraft.maxViewCount}
+                onChange={handleFilterDraftChange('maxViewCount')}
+                inputProps={{ min: 0 }}
+              />
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ justifyContent: 'space-between' }}>
+          <Button onClick={handleClearAllFilters} color="secondary">
+            Clear All
+          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button onClick={handleFilterReset}>Reset</Button>
+            <Button onClick={handleCloseFilterDialog}>Cancel</Button>
+            <Button onClick={handleFilterApply} variant="contained">
+              Apply
+            </Button>
+          </Stack>
+        </DialogActions>
+      </Dialog>
+
       {error && (
         <Box
           sx={{
@@ -353,3 +568,4 @@ const Listing = () => {
 };
 
 export default Listing;
+
