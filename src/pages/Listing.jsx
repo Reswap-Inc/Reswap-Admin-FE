@@ -56,8 +56,8 @@ const FILTER_DEFAULTS = {
 
 const tableHead = [
   { id: "listingId", label: "Listing ID" },
-  { id: "propertyName", label: "Property Name" },
   { id: "title", label: "Title" },
+  { id: "propertyName", label: "Property Name" },
   { id: "unitType", label: "Unit Type", sortable: false },
   { id: "location", label: "Location", sortable: false },
   { id: "viewCount", label: "View Count" },

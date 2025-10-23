@@ -234,12 +234,27 @@ const ListingDetails = () => {
     || currentProperty?.verifiedByUser?.preferred_username
     || currentProperty?.verifiedBy
     || null;
+
+  const FALLBACK_IMAGE_SRC = 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200"><rect width="100%" height="100%" fill="#f4f4f4"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#666" font-family="Arial" font-size="16">Image unavailable</text></svg>'
+  );
+
   const handleImageError = (event) => {
     if (event?.target) {
       event.target.onerror = null;
-      event.target.src = 'https://via.placeholder.com/320x200?text=Image+Unavailable';
+      event.target.src = FALLBACK_IMAGE_SRC;
     }
   };
+
+  const unitImageUrls = Array.isArray(currentProperty?.unitImages)
+    ? currentProperty.unitImages.filter((img) => typeof img === 'string' && img.length)
+    : [];
+  const furnitureImageUrls = Array.isArray(currentProperty?.furnitureImages)
+    ? currentProperty.furnitureImages.filter((img) => typeof img === 'string' && img.length)
+    : [];
+  const floorPlanUrl = (Array.isArray(currentProperty?.floorPlanImage)
+    ? currentProperty.floorPlanImage[0]
+    : currentProperty?.floorPlanImage) || null;
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -254,7 +269,7 @@ const ListingDetails = () => {
         <Box display="flex" alignItems="center" gap={3} width="100%">
           <Avatar
             alt={currentProperty?.propertyName || 'Property'}
-            src={currentProperty?.unitImages?.[0]}
+            src={unitImageUrls[0] || undefined}
             sx={{ width: 100, height: 100, border: '2px solid', borderColor: 'divider' }}
           >
             {!currentProperty?.unitImages?.[0] && <HomeWorkIcon sx={{ fontSize: 50 }} />}
@@ -323,7 +338,7 @@ const ListingDetails = () => {
           <Typography variant="h5" color="primary" fontWeight="bold">
             {formatCurrency(currentProperty?.price?.rent?.amount, currentProperty?.price?.rent?.currency)} / month
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" component="div" color="text.secondary">
             Deposit: {formatCurrency(currentProperty?.price?.deposit?.amount, currentProperty?.price?.deposit?.currency)}
             {currentProperty?.price?.flexible && <Chip label="Flexible Price" size="small" color="success" variant="outlined" sx={{ ml: 1 }} />}
           </Typography>
@@ -430,13 +445,13 @@ const ListingDetails = () => {
       )}
 
       {/* --- Image Gallery --- */}
-      {(currentProperty?.unitImages?.length > 0 || currentProperty?.floorPlanImage) && (
+      {(unitImageUrls.length > 0 || floorPlanUrl || furnitureImageUrls.length > 0) && (
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>Images</Typography>
             <Grid container spacing={2}>
               {/* Main Unit Images */}
-              {currentProperty?.unitImages?.map((img, index) => (
+              {unitImageUrls.map((img, index) => (
                 <Grid item xs={12} sm={6} md={4} key={`unit-img-${index}`}>
                   <CardMedia
                     component="img"
@@ -448,12 +463,12 @@ const ListingDetails = () => {
                 </Grid>
               ))}
               {/* Floor Plan */}
-              {currentProperty?.floorPlanImage && (
+              {floorPlanUrl && (
                 <Grid item xs={12} sm={6} md={4} key="floorplan-img">
                   <Typography variant="subtitle2" gutterBottom>Floor Plan</Typography>
                   <CardMedia
                     component="img"
-                    image={currentProperty?.floorPlanImage}
+                    image={floorPlanUrl}
                     alt="Floor Plan"
                     sx={{ borderRadius: 1, height: 200, objectFit: 'contain', border: '1px solid', borderColor: 'divider' }}
                     onError={handleImageError}
@@ -461,9 +476,9 @@ const ListingDetails = () => {
                 </Grid>
               )}
               {/* Furniture Images (Optional - can be combined or separate) */}
-              {currentProperty.furnitureImages?.map((img, index) => (
+              {furnitureImageUrls.map((img, index) => (
                 <Grid item xs={12} sm={6} md={4} key={`furniture-img-${index}`}>
-                  <Typography variant="subtitle2" gutterBottom>Furniture Example</Typography>
+                  <Typography variant="subtitle2" gutterBottom>Furniture</Typography>
                   <CardMedia
                     component="img"
                     image={img}
@@ -473,7 +488,7 @@ const ListingDetails = () => {
                   />
                 </Grid>
               ))}
-              {(currentProperty?.unitImages?.length === 0 && !currentProperty?.floorPlanImage && currentProperty?.furnitureImages?.length === 0) && (
+              {(unitImageUrls.length === 0 && !floorPlanUrl && furnitureImageUrls.length === 0) && (
                 <Grid item xs={12}>
                   <Typography color="text.secondary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <ImageSearchIcon fontSize="small" /> No images provided.
@@ -548,7 +563,7 @@ const ListingDetails = () => {
               <ListItem dense disableGutters>
                 <ListItemIcon sx={{ minWidth: 35 }}><EventAvailableIcon fontSize="small" /></ListItemIcon>
                 <ListItemText
-                  primary={`Available from ${formatDate(currentProperty?.availability?.startDate)} to ${formatDate(currentProperty.availability?.endDate)}`}
+                  primary={`Available from ${formatDate(currentProperty?.availability?.startDate)} to ${formatDate(currentProperty?.availability?.endDate)}`}
                   secondary={currentProperty?.availability?.flexible ? 'Dates may be flexible' : 'Fixed dates'}
                 />
               </ListItem>

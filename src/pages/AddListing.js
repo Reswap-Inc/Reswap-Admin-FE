@@ -84,6 +84,8 @@ export default function AddListing() {
   const theme = useTheme();
   const [furnitureImages, setFurnitureImages] = useState(Array(3).fill(null));
   const [unitImages, setUnitImages] = useState(Array(3).fill(null));
+  const [floorPlanImage, setFloorPlanImage] = useState(null);
+  const [originalFloorPlanImage, setOriginalFloorPlanImage] = useState(null);
 
   const [openFurnishingModal, setOpenFurnishingModal] = React.useState(false);
   const [openDialog, setOpenDialog] = React.useState(false);
@@ -91,7 +93,6 @@ export default function AddListing() {
   const [errors, setErrors] = useState({});
   const countries = Country.getAllCountries();
   const navigate=useNavigate()
-console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
   const CONFIGKEYS = [
     "roommatePreferencesOptions",
     "foodPreferencesOptions",
@@ -302,6 +303,10 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
           ? [...listingData.furnitureImages]
           : Array(3).fill(null)
       );
+      const existingFloorPlan = Array.isArray(listingData?.floorPlanImage)
+        ? listingData.floorPlanImage[0]
+        : listingData?.floorPlanImage;
+
       setFormData({
         listingType: listingData?.listingType,
         propertyType: listingData?.propertyType?.id,
@@ -364,11 +369,17 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
         currentResidents: Array.isArray(listingData?.currentResidents) ? listingData.currentResidents : [],
         furnitureImages: Array.isArray(listingData?.furnitureImages) ? listingData.furnitureImages : [],
         unitImages: Array.isArray(listingData?.unitImages) ? listingData.unitImages : [],
+        floorPlanImage: existingFloorPlan || "",
         arePetsAllowed:
           (Array.isArray(listingData?.petsAllowed) && listingData.petsAllowed.length > 0) ||
           (Array.isArray(listingData?.petsPresent) && listingData.petsPresent.length > 0),
         // ...map other fields as needed
       });
+      setFloorPlanImage(existingFloorPlan || null);
+      setOriginalFloorPlanImage(existingFloorPlan || null);
+    } else {
+      setFloorPlanImage(null);
+      setOriginalFloorPlanImage(null);
     }
   }, [editMode, listingData]);
 
@@ -453,56 +464,74 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
   console.log("pets--->", pets);
   // console.log("roomType--->", roomType);
 
-  const handleImageUploadfur = (event, index, type) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (type === "furniture") {
-          const newImages = [...furnitureImages];
-          newImages[index] = reader.result; // Store base64 string
-          setFurnitureImages(newImages);
-          // Also update formData
-          setFormData((prev) => ({
-            ...prev,
-            furnitureImages: newImages.filter((img) => img !== null),
-          }));
-        } else {
-          const newImages = [...unitImages];
-          newImages[index] = reader.result; // Store base64 string
-          setUnitImages(newImages);
-          // Also update formData
-          setFormData((prev) => ({
-            ...prev,
-            unitImages: newImages.filter((img) => img !== null),
-          }));
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+const handleImageUpload = (event, index, type) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    toast.error("Only image files are allowed.");
+    return;
+  }
 
-  const handleImageRemove = (index, type) => {
+  const reader = new FileReader();
+  reader.onloadend = () => {
     if (type === "furniture") {
       const newImages = [...furnitureImages];
-      newImages[index] = null;
+      newImages[index] = reader.result;
       setFurnitureImages(newImages);
-      // Update formData
       setFormData((prev) => ({
         ...prev,
         furnitureImages: newImages.filter((img) => img !== null),
       }));
-    } else {
+    } else if (type === "property") {
       const newImages = [...unitImages];
-      newImages[index] = null;
+      newImages[index] = reader.result;
       setUnitImages(newImages);
-      // Update formData
       setFormData((prev) => ({
         ...prev,
         unitImages: newImages.filter((img) => img !== null),
       }));
+      setErrors((prev) => ({ ...prev, unitImages: undefined }));
+    } else if (type === "floorplan") {
+      setFloorPlanImage(reader.result);
+      setFormData((prev) => ({
+        ...prev,
+        floorPlanImage: reader.result,
+      }));
     }
   };
+  reader.readAsDataURL(file);
+};
+
+const handleImageRemove = (index, type) => {
+  if (type === "furniture") {
+    const newImages = [...furnitureImages];
+    newImages[index] = null;
+    setFurnitureImages(newImages);
+    setFormData((prev) => ({
+      ...prev,
+      furnitureImages: newImages.filter((img) => img !== null),
+    }));
+  } else if (type === "property") {
+    const newImages = [...unitImages];
+    newImages[index] = null;
+    setUnitImages(newImages);
+    setFormData((prev) => ({
+      ...prev,
+      unitImages: newImages.filter((img) => img !== null),
+    }));
+    const remaining = newImages.filter((img) => img !== null).length;
+    setErrors((prev) => ({
+      ...prev,
+      unitImages: remaining > 0 ? undefined : "At least one unit image is required",
+    }));
+  } else if (type === "floorplan") {
+    setFloorPlanImage(null);
+    setFormData((prev) => ({
+      ...prev,
+      floorPlanImage: "",
+    }));
+  }
+};
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -653,9 +682,14 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
     try {
       setIsLoading(true);
       setErrors({});
+      if (!formData?.unitImages?.length) {
+        setErrors((prev) => ({ ...prev, unitImages: "At least one unit image is required" }));
+        toast.error("Please upload at least one unit image.");
+        setIsLoading(false);
+        return;
+      }
 const funImage=await convertFurnitureImagesToBase64(formData.furnitureImages)
 const unitImage= await convertFurnitureImagesToBase64(formData.unitImages)
-console.log("funimage============",funImage)
       // Transform form data to match API format
       const apiFormData = {
         listingType: formData.listingType || "",
@@ -682,7 +716,7 @@ console.log("funimage============",funImage)
         description: formData.description || "",
         belongingsIncluded: formData.belongingsIncluded ?? false,
         saleType: "RSQT00002",
-        arePetsAllowed: formData.petsAllowed === "Allowed",
+        arePetsAllowed: !!formData.arePetsAllowed,
         petsAllowed: formData.petsAllowed || [],
         petsPresent: formData.petsPresent || [],
         amenities: formData.amenities || [],
@@ -752,6 +786,7 @@ console.log("funimage============",funImage)
         },
         currentResidents: formData.roomateDetails || [],
         furnitureImages: formData.furnitureImages || [],
+        floorPlanImage: formData.floorPlanImage || "",
         unitImages: formData.unitImages || [],
       };
       
@@ -781,7 +816,7 @@ console.log("funimage============",funImage)
         description: formData.description || "",
         belongingsIncluded: formData.belongingsIncluded ?? false,
         saleType: "RSQT00002",
-        arePetsAllowed: formData.petsAllowed === "Allowed",
+        arePetsAllowed: !!formData.arePetsAllowed,
         petsAllowed: formData.petsAllowed || [],
         petsPresent: formData.petsPresent || [],
         amenities: formData.amenities || [],
@@ -851,41 +886,50 @@ console.log("funimage============",funImage)
         },
         currentResidents: formData.roomateDetails || [],
         furnitureImages: funImage  || [],
+        floorPlanImage: formData.floorPlanImage && !formData.floorPlanImage.startsWith('data:')
+          ? formData.floorPlanImage
+          : "",
         unitImages: unitImage || [],
       };
-      console.log("Data before validation:", apiFormData);
+      const payloadForValidation = editMode ? editApiFormData : apiFormData;
+      try {
+        await validationSchema.validate(payloadForValidation, { abortEarly: false });
+        setErrors({});
+      } catch (err) {
+        handleError(err);
+        toast.error("Please correct the highlighted fields.", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+        setIsLoading(false);
+        return;
+      }
 
-      // Validate the transformed data
-    
-      // console.log("Data ready for API:",error);
-
-      let response; // Declare response variable
-
-      // Make API call based on the current path
+      let response;
       if (editMode) {
-        response = await updateListingFunction(editApiFormData);
-      } else {
-        try {
-          await validationSchema.validate(apiFormData, { abortEarly: false });
-          setErrors(null); // Clear errors if validation passes
-        } catch (err) {
-          handleError(err);
-          toast.error("All Field Required.", {
-            position: "top-right",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-          });
-          return // Set errors from Yup
+        const floorPlanDelta = {};
+        if (floorPlanImage && floorPlanImage.startsWith('data:')) {
+          floorPlanDelta.floorPlanImageA = floorPlanImage;
+          if (originalFloorPlanImage) {
+            floorPlanDelta.floorPlanImageD = originalFloorPlanImage;
+          }
+        } else if (!floorPlanImage && originalFloorPlanImage) {
+          floorPlanDelta.floorPlanImageD = originalFloorPlanImage;
         }
-        console.log(apiFormData,"dueataaaaaaaaaaaaaaaaaaaaaaaaa")
+
+        response = await updateListingFunction({
+          ...editApiFormData,
+          ...floorPlanDelta,
+        });
+      } else {
         response = await addListingFunction(apiFormData);
       }
 
       // Check if response is successful
-      console.log(response,"dataaaaaaaaaaaaaaaaaaaaaaaaa")
       if (response?.data?.status?.code === 200) {
         // Show success toast
         toast.success(response.data.status.message, {
@@ -899,6 +943,10 @@ console.log("funimage============",funImage)
         
         // Optional: Reset form or redirect
         setFormData(initialState);
+        setUnitImages(Array(3).fill(null));
+        setFurnitureImages(Array(3).fill(null));
+        setFloorPlanImage(null);
+        setOriginalFloorPlanImage(null);
         // Or redirect to another page
         navigate(`/web/admin/home`);
         setIsLoading(false)
@@ -1005,20 +1053,33 @@ console.log("funimage============",funImage)
     fetchNearByPlaces();
   }, [formData.location.address]);
 
-  const handleConfigurationChange = (type, value) => {
-    if (!value) return;
+const handleConfigurationChange = (type, value) => {
+  if (value === undefined || value === null || value === "") return;
 
-    setFormData((prev) => ({
-      ...prev,
-      configurationHouse: {
-        ...prev.configurationHouse,
-        [type]: {
-          ...prev.configurationHouse[type],
-          number: parseInt(value) || 0,
-        },
+  let numericValue = Number(value);
+  if (Number.isNaN(numericValue)) return;
+
+  if (type === "bathrooms") {
+    numericValue = Math.max(0, Math.round(numericValue * 2) / 2);
+  } else {
+    numericValue = Math.max(0, Math.round(numericValue));
+  }
+
+  if (type === "bathrooms" && Math.abs(numericValue * 2 - Math.round(numericValue * 2)) > 1e-6) {
+    return; // enforce half-step increments
+  }
+
+  setFormData((prev) => ({
+    ...prev,
+    configurationHouse: {
+      ...prev.configurationHouse,
+      [type]: {
+        ...prev.configurationHouse[type],
+        number: numericValue,
       },
-    }));
-  };
+    },
+  }));
+};
 
   const handleChangeAvailabilityFlexible = (event) => {
     const { name, checked } = event.target;
@@ -1091,43 +1152,93 @@ console.log("funimage============",funImage)
     balcony: false,
     kitchen: false,
   });
-  const [customValues, setCustomValues] = useState({
-    bedrooms: "",
-    bathrooms: "",
-    balcony: "",
-    kitchen: "",
-  });
+const [customValues, setCustomValues] = useState({
+  bedrooms: "",
+  bathrooms: "",
+  balcony: "",
+  kitchen: "",
+});
 
-  // Helper to handle custom input change
-  const handleCustomInputChange = (type, value) => {
-    // Only allow 2 digits, only numbers
-    if (/^\d{0,2}$/.test(value)) {
-      setCustomValues((prev) => ({ ...prev, [type]: value }));
-      // If value is valid and not empty, update formData
-      if (value && parseInt(value) > 0) {
-        handleConfigurationChange(type, value);
+const asHalfStep = (value) => {
+  const numeric = Number(value);
+  if (Number.isNaN(numeric)) return null;
+  const rounded = Math.round(numeric * 2) / 2;
+  return Math.abs(rounded * 2 - numeric * 2) < 1e-6 ? rounded : null;
+};
+
+// Helper to handle custom input change
+const handleCustomInputChange = (type, value) => {
+  const sanitized = value.trim();
+  const isBathroom = type === "bathrooms";
+  const pattern = isBathroom ? /^\d{0,2}(\.5)?$/ : /^\d{0,2}$/;
+
+  if (pattern.test(sanitized)) {
+    setCustomValues((prev) => ({ ...prev, [type]: sanitized }));
+
+    if (sanitized) {
+      if (isBathroom) {
+        const halfStep = asHalfStep(sanitized);
+        if (halfStep !== null) {
+          handleConfigurationChange(type, halfStep.toString());
+        }
+      } else if (parseInt(sanitized, 10) > 0) {
+        handleConfigurationChange(type, sanitized);
       }
     }
-  };
+  }
+};
 
-  // Helper to handle blur or Enter on custom input
-  const handleCustomInputBlur = (type) => {
-    setCustomInput((prev) => ({ ...prev, [type]: false }));
-    // If value is empty or less than 5, reset to 5
-    if (!customValues[type] || parseInt(customValues[type]) < 5) {
+// Helper to handle blur or Enter on custom input
+const handleCustomInputBlur = (type) => {
+  setCustomInput((prev) => ({ ...prev, [type]: false }));
+  const isBathroom = type === "bathrooms";
+  const rawValue = customValues[type];
+
+  if (!rawValue) {
+    const fallback = isBathroom ? "5" : "5";
+    setCustomValues((prev) => ({ ...prev, [type]: fallback }));
+    handleConfigurationChange(type, fallback);
+    return;
+  }
+
+  if (isBathroom) {
+    const numeric = asHalfStep(rawValue);
+    if (numeric === null || numeric < 5) {
       setCustomValues((prev) => ({ ...prev, [type]: "5" }));
       handleConfigurationChange(type, "5");
+    } else {
+      handleConfigurationChange(type, numeric.toString());
     }
-  };
+  } else {
+    const numeric = parseInt(rawValue, 10);
+    if (Number.isNaN(numeric) || numeric < 5) {
+      setCustomValues((prev) => ({ ...prev, [type]: "5" }));
+      handleConfigurationChange(type, "5");
+    } else {
+      handleConfigurationChange(type, numeric.toString());
+    }
+  }
+};
 
-  // Helper to get toggle options including custom value if >= 5, always after '5+'
-  const getToggleOptions = (currentValue) => {
-    const baseOptions = ["0", "1", "2", "3", "4", "5+"];
-    if (currentValue && parseInt(currentValue) >= 5 && !baseOptions.includes(currentValue.toString())) {
-      return [...baseOptions, currentValue.toString()];
-    }
-    return baseOptions;
-  };
+// Helper to get toggle options including custom value if >= threshold
+const getToggleOptions = (currentValue, type) => {
+  const isBathroom = type === "bathrooms";
+  const baseOptions = isBathroom
+    ? ["0", "0.5", "1", "1.5", "2", "2.5", "3", "3.5", "4", "4.5", "5+"]
+    : ["0", "1", "2", "3", "4", "5+"];
+
+  const numericValue = Number(currentValue);
+  if (
+    currentValue !== undefined &&
+    currentValue !== null &&
+    !Number.isNaN(numericValue) &&
+    numericValue >= 5 &&
+    !baseOptions.includes(numericValue.toString())
+  ) {
+    return [...baseOptions, numericValue.toString()];
+  }
+  return baseOptions;
+};
 
   return (
     <GradientBox >
@@ -1142,7 +1253,7 @@ console.log("funimage============",funImage)
           {/* Basic Details Section */}
           <Box>
             <Typography variant="h6" sx={{ color: "#10552F", mb: 3 }}>
-              Listing Type
+              Listing Type <span className="text-red-900">*</span>
             </Typography>
             <Box display="flex" flexWrap="wrap" gap={1} mt={1} mb={2}>
               {ListingType?.map((type) => (
@@ -1183,7 +1294,7 @@ console.log("funimage============",funImage)
             )}
 
             <Typography variant="h6" sx={{ color: "#10552F", mb: 3 }}>
-              Select Property Type
+              Select Property Type <span className="text-red-900">*</span>
             </Typography>
 
             <Box display="flex" flexWrap="wrap" gap={1} mt={1} mb={2}>
@@ -1225,7 +1336,7 @@ console.log("funimage============",funImage)
             )}
 
             <Typography variant="h6" sx={{ color: "#10552F", mb: 3 }}>
-              Select Unit Type
+              Select Unit Type <span className="text-red-900">*</span>
             </Typography>
             <Box display="flex" flexWrap="wrap" gap={1} mt={1} mb={2}>
               {unitType?.map((type) => (
@@ -1265,7 +1376,7 @@ console.log("funimage============",funImage)
             {formData.listingType !== "unit" && (
               <>
                 <Typography variant="h6" sx={{ color: "#10552F", mb: 3 }}>
-                  Select Room Type
+                  Select Room Type <span className="text-red-900">*</span>
                 </Typography>
 
                 <Box display="flex" flexWrap="wrap" gap={1} mt={1} mb={2}>
@@ -1309,7 +1420,7 @@ console.log("funimage============",funImage)
             <TextField
               fullWidth
               margin="normal"
-              label="Title"
+              label="Title *"
               name="title"
               value={formData.title}
               onChange={handleChange}
@@ -1332,7 +1443,7 @@ console.log("funimage============",funImage)
               margin="normal"
               multiline
               rows={3}
-              label="Description"
+              label="Description *"
               name="description"
               value={formData.description}
               onChange={handleChange}
@@ -1621,7 +1732,7 @@ console.log("funimage============",funImage)
                 </FormControl>
               </Grid> */}
               <Grid item xs={12} md={6}>
-  <FormControl fullWidth>
+  <FormControl fullWidth error={!!errors?.amenities}>
     <InputLabel>
       Amenities <span className="text-red-900">*</span>
     </InputLabel>
@@ -1670,8 +1781,82 @@ console.log("funimage============",funImage)
         </MenuItem>
       ))}
     </Select>
-  </FormControl>
+  {errors?.amenities && (
+    <FormHelperText error>{errors.amenities}</FormHelperText>
+  )}
+</FormControl>
 </Grid>
+
+
+              <Grid item xs={12}>
+                <Typography
+                  variant="subtitle1"
+                  sx={{ mt: 2, mb: 1, color: "#10552F", fontWeight: 500 }}
+                >
+                  Floor Plan (optional)
+                </Typography>
+                {floorPlanImage ? (
+                  <Box
+                    sx={{
+                      position: "relative",
+                      width: "100%",
+                      maxWidth: 360,
+                      borderRadius: 2,
+                      overflow: "hidden",
+                      border: "2px solid #23BB67",
+                    }}
+                  >
+                    <img
+                      src={floorPlanImage}
+                      alt="Floor plan preview"
+                      style={{ width: "100%", height: "auto", display: "block" }}
+                    />
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="small"
+                      onClick={() => handleImageRemove(0, "floorplan")}
+                      sx={{ position: "absolute", top: 8, right: 8 }}
+                    >
+                      Remove
+                    </Button>
+                  </Box>
+                ) : (
+                  <Box
+                    sx={{
+                      width: "100%",
+                      maxWidth: 360,
+                      height: 200,
+                      border: "2px dashed #23BB67",
+                      borderRadius: 2,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      backgroundColor: "#f8faf8",
+                      cursor: "pointer",
+                      "&:hover": {
+                        borderColor: "#10552F",
+                      },
+                    }}
+                    onClick={() => document.getElementById('floorplan-upload').click()}
+                  >
+                    <Box textAlign="center">
+                      <AddPhotoAlternateIcon sx={{ fontSize: 40, color: "#23BB67" }} />
+                      <Typography variant="body2" color="textSecondary">
+                        Click to upload floor plan
+                      </Typography>
+                    </Box>
+                    <input
+                      type="file"
+                      id="floorplan-upload"
+                      accept="image/*"
+                      hidden
+                      onChange={(event) => handleImageUpload(event, 0, "floorplan")}
+                    />
+                  </Box>
+                )}
+              </Grid>
+
 
               <Grid item xs={12}>
                 <Typography
@@ -1711,11 +1896,11 @@ console.log("funimage============",funImage)
                     }}
                     fullWidth
                   >
-                    {getToggleOptions(formData.configurationHouse?.bedrooms?.number).map((item) => (
-                      <ToggleButton key={item} value={item}>
-                        {item}
-                      </ToggleButton>
-                    ))}
+            {getToggleOptions(formData.configurationHouse?.bedrooms?.number, "bedrooms").map((item) => (
+              <ToggleButton key={item} value={item}>
+                {item}
+              </ToggleButton>
+            ))}
                   </ToggleButtonGroup>
                 )}
                 {errors?.configurationHouse?.bedrooms?.number && (
@@ -1724,6 +1909,7 @@ console.log("funimage============",funImage)
                   </FormHelperText>
                 )}
               </Grid>
+
               <Grid item xs={12}>
                 <Typography
                   variant="subtitle1"
@@ -1734,40 +1920,46 @@ console.log("funimage============",funImage)
                     fontWeight: 500 
                   }}
                 >
-                  Number of Bathrooms  <span className="text-red-900">*</span>
+                  Number of Bathrooms (supports half steps) <span className="text-red-900">*</span>
                 </Typography>
-                {customInput.bathrooms ? (
-                  <TextField
-                    autoFocus
-                    value={customValues.bathrooms}
-                    onChange={e => handleCustomInputChange("bathrooms", e.target.value)}
-                    onBlur={() => handleCustomInputBlur("bathrooms")}
-                    onKeyDown={e => { if (e.key === "Enter") handleCustomInputBlur("bathrooms"); }}
-                    inputProps={{ maxLength: 2, inputMode: "numeric", pattern: "[0-9]*" }}
-                    fullWidth
-                    placeholder="Enter number"
-                    helperText="Enter a number (max 2 digits)"
-                  />
-                ) : (
-                  <ToggleButtonGroup
-                    value={formData.configurationHouse?.bathrooms?.number?.toString() || "1"}
-                    exclusive
-                    onChange={(_, newValue) => {
-                      if (newValue === "5+") {
-                        setCustomInput(prev => ({ ...prev, bathrooms: true }));
-                        setCustomValues(prev => ({ ...prev, bathrooms: formData.configurationHouse?.bathrooms?.number >= 5 ? formData.configurationHouse?.bathrooms?.number.toString() : "" }));
-                      } else if (newValue !== null) {
-                        handleConfigurationChange("bathrooms", newValue);
-                      }
-                    }}
-                    fullWidth
-                  >
-                    {getToggleOptions(formData.configurationHouse?.bathrooms?.number).map((item) => (
-                      <ToggleButton key={item} value={item}>
-                        {item}
-                      </ToggleButton>
-                    ))}
-                  </ToggleButtonGroup>
+            {customInput.bathrooms ? (
+              <TextField
+                autoFocus
+                value={customValues.bathrooms}
+                onChange={e => handleCustomInputChange("bathrooms", e.target.value)}
+                onBlur={() => handleCustomInputBlur("bathrooms")}
+                onKeyDown={e => { if (e.key === "Enter") handleCustomInputBlur("bathrooms"); }}
+                inputProps={{ maxLength: 4, inputMode: "decimal", pattern: "\\d{0,2}(\\.5)?" }}
+                fullWidth
+                placeholder="Enter number"
+                helperText="Enter a value like 5 or 5.5"
+              />
+            ) : (
+              <ToggleButtonGroup
+                value={formData.configurationHouse?.bathrooms?.number?.toString() || "1"}
+                exclusive
+                onChange={(_, newValue) => {
+                  if (newValue === "5+") {
+                    setCustomInput(prev => ({ ...prev, bathrooms: true }));
+                    setCustomValues(prev => ({
+                      ...prev,
+                      bathrooms:
+                        formData.configurationHouse?.bathrooms?.number >= 5
+                          ? formData.configurationHouse?.bathrooms?.number.toString()
+                          : ""
+                    }));
+                  } else if (newValue !== null) {
+                    handleConfigurationChange("bathrooms", newValue);
+                  }
+                }}
+                fullWidth
+              >
+                {getToggleOptions(formData.configurationHouse?.bathrooms?.number, "bathrooms").map((item) => (
+                  <ToggleButton key={item} value={item}>
+                    {item}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
                 )}
                 {errors?.configurationHouse?.bathrooms?.number && (
                   <FormHelperText error>
@@ -1813,11 +2005,11 @@ console.log("funimage============",funImage)
                     }}
                     fullWidth
                   >
-                    {getToggleOptions(formData.configurationHouse?.balcony?.number).map((item) => (
-                      <ToggleButton key={item} value={item}>
-                        {item}
-                      </ToggleButton>
-                    ))}
+            {getToggleOptions(formData.configurationHouse?.balcony?.number, "balcony").map((item) => (
+              <ToggleButton key={item} value={item}>
+                {item}
+              </ToggleButton>
+            ))}
                   </ToggleButtonGroup>
                 )}
                 {errors?.configurationHouse?.balcony?.number && (
@@ -1864,17 +2056,124 @@ console.log("funimage============",funImage)
                     }}
                     fullWidth
                   >
-                    {getToggleOptions(formData.configurationHouse?.kitchen?.number).map((item) => (
-                      <ToggleButton key={item} value={item}>
-                        {item}
-                      </ToggleButton>
-                    ))}
+            {getToggleOptions(formData.configurationHouse?.kitchen?.number, "kitchen").map((item) => (
+              <ToggleButton key={item} value={item}>
+                {item}
+              </ToggleButton>
+            ))}
                   </ToggleButtonGroup>
                 )}
-                {errors?.configurationHouse?.kitchen?.number && (
-                  <FormHelperText error>
-                    {errors.configurationHouse.kitchen.number}
-                  </FormHelperText>
+              {errors?.configurationHouse?.kitchen?.number && (
+                <FormHelperText error>
+                  {errors.configurationHouse.kitchen.number}
+                </FormHelperText>
+              )}
+              </Grid>
+
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" sx={{ color: "#10552F", fontWeight: 500, mt: 2, mb: 1 }}>
+                  Property Images <span className="text-red-900">*</span>
+                </Typography>
+                <Grid container spacing={2}>
+                  {unitImages.map((image, index) => (
+                    <Grid item xs={12} sm={4} key={index}>
+                      <Box
+                        sx={{
+                          width: "100%",
+                          height: 200,
+                          border: "2px dashed #23BB67",
+                          borderRadius: 2,
+                          position: "relative",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          backgroundColor: "#f8faf8",
+                          overflow: "hidden",
+                          "&:hover": {
+                            borderColor: "#10552F",
+                          },
+                        }}
+                      >
+                        {image ? (
+                          <>
+                            <img
+                              src={image}
+                              alt={`property-${index}`}
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
+                            />
+                            <IconButton
+                              sx={{
+                                position: "absolute",
+                                top: 8,
+                                right: 8,
+                                backgroundColor: "rgba(0, 0, 0, 0.5)",
+                                color: "white",
+                                "&:hover": {
+                                  backgroundColor: "rgba(0, 0, 0, 0.7)",
+                                },
+                              }}
+                              onClick={() => handleImageRemove(index, "property")}
+                            >
+                              <RemoveIcon />
+                            </IconButton>
+                          </>
+                        ) : (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "center",
+                              cursor: "pointer",
+                            }}
+                            onClick={() => document.getElementById(`property-upload-${index}`).click()}
+                          >
+                            <AddPhotoAlternateIcon sx={{ fontSize: 40, color: "#23BB67", mb: 1 }} />
+                            <Typography variant="body2" color="textSecondary">
+                              Click to upload
+                            </Typography>
+                          </Box>
+                        )}
+                        <input
+                          type="file"
+                          id={`property-upload-${index}`}
+                          accept="image/*"
+                          hidden
+                          onChange={(event) => handleImageUpload(event, index, "property")}
+                        />
+                      </Box>
+                    </Grid>
+                  ))}
+                  <Grid item xs={12} sm={4}>
+                    <Box
+                      sx={{
+                        width: "100%",
+                        height: 200,
+                        border: "2px dashed #ccc",
+                        borderRadius: 2,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        backgroundColor: "#f0f0f0",
+                        cursor: "pointer",
+                        "&:hover": {
+                          borderColor: "#10552F",
+                        },
+                      }}
+                      onClick={() => setUnitImages([...unitImages, null])}
+                    >
+                      <AddPhotoAlternateIcon sx={{ fontSize: 40, color: "#999", mb: 1 }} />
+                      <Typography variant="body2" color="textSecondary">
+                        Add more images
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+                {errors?.unitImages && (
+                  <FormHelperText error>{errors.unitImages}</FormHelperText>
                 )}
               </Grid>
 
@@ -1985,7 +2284,7 @@ console.log("funimage============",funImage)
                 <Grid item xs={12}>
                   <Box mt={2} p={2} bgcolor="#f0f7f2" borderRadius="8px">
                     <Typography variant="subtitle1" fontWeight="bold">
-                      Furniture Includes  <span className="text-red-900">*</span>
+                      Furniture Includes
                     </Typography>
                     <Box sx={{ backgroundColor: "#f8f9fa", borderRadius: 2, p: 2 }}>
                       {formData.furniture.map((item) => (
@@ -2008,7 +2307,7 @@ console.log("funimage============",funImage)
             </Grid>
             <Box>
   <Typography variant="h6" sx={{ color: "#10552F", mb: 2 }}>
-    Furniture Images <span className="text-red-900">*</span>
+    Furniture Images
   </Typography>
 
   <Grid container spacing={2}>
@@ -2084,7 +2383,7 @@ console.log("funimage============",funImage)
             accept="image/*"
             hidden
             onChange={(event) =>
-              handleImageUploadfur(event, index, "furniture")
+              handleImageUpload(event, index, "furniture")
             }
           />
         </Box>
@@ -2112,14 +2411,14 @@ console.log("funimage============",funImage)
       >
         <AddPhotoAlternateIcon sx={{ fontSize: 40, color: "#999", mb: 1 }} />
         <Typography variant="body2" color="textSecondary">
-          Add more image
+          Add more images
         </Typography>
       </Box>
     </Grid>
   </Grid>
 
   {errors?.furnitureImages && (
-    <FormHelperText error>{errors.furnitureImage}</FormHelperText>
+    <FormHelperText error>{errors.furnitureImages}</FormHelperText>
   )}
 </Box>
 
@@ -2194,227 +2493,11 @@ console.log("funimage============",funImage)
                   }}
                 />
               }
-              label="Price Negotiable *"
+              label="Price Negotiable"
             />
           </Box>
 
-          {/* Images Section */}
-          <Box>
-  <Typography variant="h6" sx={{ color: "#10552F", mb: 2 }}>
-    Property Images <span className="text-red-900">*</span>
-  </Typography>
-
-  <Grid container spacing={2}>
-    {unitImages.map((image, index) => (
-      <Grid item xs={12} sm={4} key={index}>
-        <Box
-          sx={{
-            width: "100%",
-            height: 200,
-            border: "2px dashed #23BB67",
-            borderRadius: 2,
-            position: "relative",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "#f8faf8",
-            overflow: "hidden",
-            "&:hover": {
-              borderColor: "#10552F",
-            },
-          }}
-        >
-          {image ? (
-            <>
-              <img
-                src={image}
-                alt={`property-${index}`}
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
-              <IconButton
-                sx={{
-                  position: "absolute",
-                  top: 8,
-                  right: 8,
-                  backgroundColor: "rgba(0, 0, 0, 0.5)",
-                  color: "white",
-                  "&:hover": {
-                    backgroundColor: "rgba(0, 0, 0, 0.7)",
-                  },
-                }}
-                onClick={() => handleImageRemove(index, "property")}
-              >
-                <RemoveIcon />
-              </IconButton>
-            </>
-          ) : (
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                cursor: "pointer",
-              }}
-              onClick={() =>
-                document.getElementById(`property-upload-${index}`).click()
-              }
-            >
-              <AddPhotoAlternateIcon
-                sx={{ fontSize: 40, color: "#23BB67", mb: 1 }}
-              />
-              <Typography variant="body2" color="textSecondary">
-                Click to upload
-              </Typography>
-            </Box>
-          )}
-          <input
-            type="file"
-            id={`property-upload-${index}`}
-            accept="image/*"
-            hidden
-            onChange={(event) =>
-              handleImageUploadfur(event, index, "property")
-            }
-          />
-        </Box>
-      </Grid>
-    ))}
-
-    {/* Add button to allow uploading new image slot */}
-    <Grid item xs={12} sm={4}>
-      <Box
-        sx={{
-          width: "100%",
-          height: 200,
-          border: "2px dashed #ccc",
-          borderRadius: 2,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backgroundColor: "#f0f0f0",
-          cursor: "pointer",
-          "&:hover": {
-            borderColor: "#10552F",
-          },
-        }}
-        onClick={() => {
-          setUnitImages([...unitImages, null]);
-        }}
-      >
-        <AddPhotoAlternateIcon
-          sx={{ fontSize: 40, color: "#999", mb: 1 }}
-        />
-        <Typography variant="body2" color="textSecondary">
-          Add more image
-        </Typography>
-      </Box>
-    </Grid>
-  </Grid>
-</Box>
-
-          {/* Image Preview Grid */}
-          {/* <Box>
-            <Typography variant="h6" sx={{ color: "#10552F", mb: 2 }}>
-              Property Images (Max 3) <span className="text-red-900">*</span>
-            </Typography>
-            <input
-                      type="file"
-                      id={`property-upload-${1}`}
-                      accept="image/*"
-                      hidden
-                      onChange={(event) =>
-                        handleImageUploadfur(event, index, "property")
-                      }
-                    />
-            <Grid container spacing={2}>
-              {unitImages.map((image, index) => (
-                <Grid item xs={12} sm={4} key={index}>
-                  <Box
-                    sx={{
-                      width: "100%",
-                      height: 200,
-                      border: "2px dashed #23BB67",
-                      borderRadius: 2,
-                      position: "relative",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      backgroundColor: "#f8faf8",
-                      overflow: "hidden",
-                      "&:hover": {
-                        borderColor: "#10552F",
-                      },
-                    }}
-                  >
-                    {image ? (
-                      <>
-                        <img
-                          src={image}
-                          alt={`property-${index}`}
-                          style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                          }}
-                        />
-                        <IconButton
-                          sx={{
-                            position: "absolute",
-                            top: 8,
-                            right: 8,
-                            backgroundColor: "rgba(0, 0, 0, 0.5)",
-                            color: "white",
-                            "&:hover": {
-                              backgroundColor: "rgba(0, 0, 0, 0.7)",
-                            },
-                          }}
-                          onClick={() => handleImageRemove(index, "property")}
-                        >
-                          <RemoveIcon />
-                        </IconButton>
-                      </>
-                    ) : (
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          cursor: "pointer",
-                        }}
-                        onClick={() =>
-                          document
-                            .getElementById(`property-upload-${index}`)
-                            .click()
-                        }
-                      >
-                        <AddPhotoAlternateIcon
-                          sx={{ fontSize: 40, color: "#23BB67", mb: 1 }}
-                        />
-                        <Typography variant="body2" color="textSecondary">
-                          Click to upload
-                        </Typography>
-                      </Box>
-                    )}
-                    <input
-                      type="file"
-                      id={`property-upload-${index}`}
-                      accept="image/*"
-                      hidden
-                      onChange={(event) =>
-                        handleImageUploadfur(event, index, "property")
-                      }
-                    />
-                  </Box>
-                </Grid>
-              ))}
-            </Grid>
-          </Box> */}
-
-          {/* <Box sx={{ mt: 2 }}>
+                    {/* <Box sx={{ mt: 2 }}>
           <Typography variant="h6" sx={{ color: "#10552F", mb: 2 }}>
 Roommate Preferences <span className="text-red-900">*</span>
             </Typography>
