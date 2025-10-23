@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import Ctable from "../components/Ctable";
 import AddButton from "../components/AddButton";
@@ -22,6 +22,7 @@ import {
   Select,
   MenuItem,
   Stack,
+  Typography,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
@@ -35,14 +36,22 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 
 import { getSearchAlllisting } from "../network/ListingThunk";
 import { getProfile } from "../network/Authapi";
+import { getConfiguration } from "../network/generalApi";
 
 const FILTER_DEFAULTS = {
-  verified: 'all',
-  minViewCount: '',
-  maxViewCount: '',
-  propertyName: '',
-  city: '',
-  unitType: '',
+  ownedBy: '',
+  updatedWithin: 'any',
+  listingType: 'all',
+  unitType: 'all',
+  propertyType: 'all',
+  furniturePresent: 'any',
+  petsPresent: 'any',
+  minRent: '',
+  maxRent: '',
+  availabilityStart: '',
+  availabilityEnd: '',
+  unitImages: 'any',
+  hasCurrentResidents: 'any',
 };
 
 const tableHead = [
@@ -64,20 +73,75 @@ const Listing = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  const [tableset, settable] = useState("categories");
-  const [open, setOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [searchParam, setSearchQuery] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [totalElements, setTotalElements] = useState(0);
   const [sortField, setSortField] = useState("");
   const [sortOrder, setSortOrder] = useState("asc");
   const [statusFilter, setStatusFilter] = useState('all');
   const [filters, setFilters] = useState(() => ({ ...FILTER_DEFAULTS }));
   const [filterDraft, setFilterDraft] = useState(() => ({ ...FILTER_DEFAULTS }));
   const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false);
-  const searchbarResetRef = useRef(null);
+  const listingTypeOptions = useMemo(
+    () => ([
+      { id: 'unit', name: 'Unit' },
+      { id: 'room', name: 'Room' },
+    ]),
+    []
+  );
+  const [unitTypeOptions, setUnitTypeOptions] = useState([]);
+  const [propertyTypeOptions, setPropertyTypeOptions] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    const hydrateConfigs = async () => {
+      try {
+        const [unitRes, propertyRes] = await Promise.all([
+          getConfiguration("unitType"),
+          getConfiguration("propertyType"),
+        ]);
+        if (cancelled) return;
+        setUnitTypeOptions(unitRes?.body?.items ?? []);
+        setPropertyTypeOptions(propertyRes?.body?.items ?? []);
+      } catch (err) {
+        console.error("Failed to load configuration options:", err);
+      }
+    };
+    hydrateConfigs();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+
+  const profileState = useSelector((state) => state.getProfileSlice);
+  const profile = profileState?.data;
+  const profileSub = profile?.sub;
+  const isSuperAdmin = Boolean(profile?.params?.Roles);
+  const isAdminUser = profile?.userType === 'admin';
+  const isScopedAdmin = isAdminUser && !isSuperAdmin && Boolean(profileSub);
+
+  const { listings, loading, error } = useSelector(
+    (state) => state.AllListingSlice
+  );
+  const propertyManagerOptions = useMemo(() => {
+    if (!isSuperAdmin) return [];
+    const map = new Map();
+    const source = listings?.body ?? [];
+    source.forEach((listing) => {
+      const managerSub = listing?.propertyManagerDetails?.sub || listing?.ownerUserId;
+      if (!managerSub) return;
+      const managerUser = listing?.propertyManagerDetails?.user || listing?.ownerUser;
+      const displayName =
+        managerUser?.given_name ||
+        managerUser?.preferred_username ||
+        managerUser?.name ||
+        managerSub;
+      if (!map.has(managerSub)) {
+        map.set(managerSub, displayName);
+      }
+    });
+    return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+  }, [isSuperAdmin, listings]);
   const filterPayload = useMemo(() => {
     const payload = {};
 
@@ -85,98 +149,89 @@ const Listing = () => {
       payload.status = statusFilter;
     }
 
-    if (filters.verified && filters.verified !== 'all') {
-      payload.verified = filters.verified === 'true';
+    if (isSuperAdmin && filters.ownedBy) {
+      payload['propertyManagerDetails.sub'] = { $eq: filters.ownedBy };
     }
 
-    const parseNumeric = (value) => {
-      if (value === undefined || value === null) return null;
-      const trimmed = value.toString().trim();
-      if (trimmed === '') return null;
-      const parsed = Number(trimmed);
-      return Number.isNaN(parsed) ? null : parsed;
-    };
-
-    const minViews = parseNumeric(filters.minViewCount);
-    const maxViews = parseNumeric(filters.maxViewCount);
-    if (minViews !== null || maxViews !== null) {
-      const viewCountFilter = {};
-      if (minViews !== null) viewCountFilter.$gte = minViews;
-      if (maxViews !== null) viewCountFilter.$lte = maxViews;
-      if (Object.keys(viewCountFilter).length > 0) {
-        payload.viewCount = viewCountFilter;
+    if (filters.updatedWithin && filters.updatedWithin !== 'any') {
+      const days = Number(filters.updatedWithin);
+      if (!Number.isNaN(days) && days > 0) {
+        const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+        payload.updatedAt = { $gte: cutoff };
       }
     }
 
-    const propertyName = typeof filters.propertyName === 'string' ? filters.propertyName.trim() : '';
-    if (propertyName) {
-      payload.propertyName = `*${propertyName}*`;
+    if (filters.listingType && filters.listingType !== 'all') {
+      payload.listingType = filters.listingType;
     }
 
-    const city = typeof filters.city === 'string' ? filters.city.trim() : '';
-    if (city) {
-      payload['location.city'] = `*${city}*`;
+    if (filters.unitType && filters.unitType !== 'all' && filters.unitType) {
+      payload.unitType = filters.unitType;
     }
 
-    const unitType = typeof filters.unitType === 'string' ? filters.unitType.trim() : '';
-    if (unitType) {
-      payload['unitType.name'] = `*${unitType}*`;
+    if (filters.propertyType && filters.propertyType !== 'all' && filters.propertyType) {
+      payload.propertyType = filters.propertyType;
+    }
+
+    const applyLengthFilter = (key, mode) => {
+      if (mode === 'with') {
+        payload[key] = { $gt: 0 };
+      } else if (mode === 'without') {
+        payload[key] = { $eq: 0 };
+      }
+    };
+
+    applyLengthFilter('furniture.length', filters.furniturePresent);
+    applyLengthFilter('petsPresent.length', filters.petsPresent);
+    applyLengthFilter('unitImages.length', filters.unitImages);
+    applyLengthFilter('currentResidents.length', filters.hasCurrentResidents);
+
+    const rentFilter = {};
+    const minRent = Number(filters.minRent);
+    if (!Number.isNaN(minRent) && filters.minRent !== '') {
+      rentFilter.$gte = minRent;
+    }
+    const maxRent = Number(filters.maxRent);
+    if (!Number.isNaN(maxRent) && filters.maxRent !== '') {
+      rentFilter.$lte = maxRent;
+    }
+    if (Object.keys(rentFilter).length > 0) {
+      payload['price.rent.amount'] = rentFilter;
+    }
+
+    if (filters.availabilityStart) {
+      const isoStart = new Date(filters.availabilityStart).toISOString();
+      payload['availability.startDate'] = {
+        ...(payload['availability.startDate'] || {}),
+        $gte: isoStart,
+      };
+    }
+
+    if (filters.availabilityEnd) {
+      const isoEnd = new Date(filters.availabilityEnd).toISOString();
+      payload['availability.endDate'] = {
+        ...(payload['availability.endDate'] || {}),
+        $lte: isoEnd,
+      };
     }
 
     return payload;
-  }, [filters, statusFilter]);
-
+  }, [filters, isSuperAdmin, statusFilter]);
   const hasActiveFilters = useMemo(() => {
-    const { verified, minViewCount, maxViewCount, propertyName, city, unitType } = filters;
-    const hasValue = (value) => {
-      if (value === undefined || value === null) return false;
-      if (typeof value === 'string') {
-        return value.trim().length > 0;
-      }
-      return true;
-    };
-
-    const hasMinViews = hasValue(minViewCount);
-    const hasMaxViews = hasValue(maxViewCount);
-    const hasPropertyName = hasValue(propertyName);
-    const hasCity = hasValue(city);
-    const hasUnitType = hasValue(unitType);
-
-    return (
-      (statusFilter && statusFilter !== 'all') ||
-      (verified && verified !== 'all') ||
-      hasMinViews ||
-      hasMaxViews ||
-      hasPropertyName ||
-      hasCity ||
-      hasUnitType
-    );
-  }, [filters, statusFilter]);
-
-  const profile = useSelector((state) => state.getProfileSlice?.data)
-  // console.log("profile=========>>>>>>", profile)
-  const resetSearch = () => {
-    if (searchbarResetRef.current) {
-      searchbarResetRef.current();
-    }
-  };
-
-  useEffect(() => {
-    setPage(0);
-    resetSearch();
-  }, [tableset]);
-  // useEffect(() => {
-  //   const fetchProfile = async () => {
-  //     await dispatch(getProfile());
-  //   };
-
-  //   fetchProfile();
-  // }, [dispatch]);
-  const { listings, loading, error } = useSelector(
-    (state) => state.AllListingSlice
-  );
-
-  // console.log(listings, "listinggg");
+    if (statusFilter && statusFilter !== 'all') return true;
+    if (isSuperAdmin && filters.ownedBy) return true;
+    if (filters.updatedWithin && filters.updatedWithin !== 'any') return true;
+    if (filters.listingType && filters.listingType !== 'all') return true;
+    if (filters.unitType && filters.unitType !== 'all' && filters.unitType) return true;
+    if (filters.propertyType && filters.propertyType !== 'all' && filters.propertyType) return true;
+    if (['with', 'without'].includes(filters.furniturePresent)) return true;
+    if (['with', 'without'].includes(filters.petsPresent)) return true;
+    if (['with', 'without'].includes(filters.unitImages)) return true;
+    if (['with', 'without'].includes(filters.hasCurrentResidents)) return true;
+    if (filters.minRent !== '' || filters.maxRent !== '') return true;
+    if (filters.availabilityStart || filters.availabilityEnd) return true;
+    return false;
+  }, [filters, isSuperAdmin, statusFilter]);
 
 
 
@@ -196,15 +251,13 @@ const Listing = () => {
   // }, [dispatch, profile?.sub, page, rowsPerPage, searchParam]);
 
   useEffect(() => {
-    if (!profile?.sub) return; // Wait until profile is available
+    if (!profile || Array.isArray(profile)) return; // wait for profile load
+    if (isScopedAdmin && !profileSub) return;
 
     const form = {
-      // ...(profile?.custom_fields?.isLeanAdmin && {
-      //   "propertyManagerDetails.sub": { $eq: profile.sub }
-      // }),
-      ...(profile?.custom_fields?.isLeanAdmin && !profile?.params?.Roles && {
-        "propertyManagerDetails.sub": { $eq: profile.sub }
-      }),
+      ...(isScopedAdmin ? {
+        "propertyManagerDetails.sub": { $eq: profileSub }
+      } : {}),
       ...(searchParam && { search: `*${searchParam}*` }),
       page,
       limit: rowsPerPage,
@@ -213,14 +266,8 @@ const Listing = () => {
     };
 
     dispatch(getSearchAlllisting(form));
-  }, [dispatch, profile?.sub, profile?.custom_fields?.isLeanAdmin, page, rowsPerPage, searchParam, sortField, sortOrder, filterPayload]);
+  }, [dispatch, profile, profileSub, isScopedAdmin, page, rowsPerPage, searchParam, sortField, sortOrder, filterPayload]);
 
-
-  const [selectedDate, setSelectedDate] = useState("");
-
-  const handleDateChange = (event) => {
-    setSelectedDate(event.target.value);
-  };
 
   const handleSearch = (event) => {
     const searchValue = event.target.value;
@@ -278,10 +325,12 @@ const Listing = () => {
   };
 
   const refreshListings = () => {
+    if (!profile || Array.isArray(profile)) return;
+    if (isScopedAdmin && !profileSub) return;
     const form = {
-      ...(profile?.custom_fields?.isLeanAdmin && !profile?.params?.Roles && {
-        "propertyManagerDetails.sub": { $eq: profile.sub }
-      }),
+      ...(isScopedAdmin ? {
+        "propertyManagerDetails.sub": { $eq: profileSub }
+      } : {}),
       ...(searchParam && { search: `*${searchParam}*` }),
       page,
       limit: rowsPerPage,
@@ -401,27 +450,6 @@ const Listing = () => {
           justifyContent: isMobile ? "space-between" : "flex-end",
           width: isMobile ? "100%" : "auto"
         }}>
-          {/* Calendar Filter Icon */}
-          {/* <TextField
-            type="date"
-            size="small"
-            value={selectedDate}
-            onChange={handleDateChange}
-            sx={{
-              width: 200,
-              borderRadius: 50,
-              "& input": { cursor: "pointer" }, // Make input clickable
-            }}
-          // InputProps={{
-          //   endAdornment: (
-          //     <InputAdornment position="end">
-          //       <IconButton>
-          //         <CalendarTodayIcon />
-          //       </IconButton>
-          //     </InputAdornment>
-          //   ),
-          // }}
-          /> */}
           {/* Additional Filter Icon */}
           <IconButton
             title="Filters"
@@ -477,62 +505,225 @@ const Listing = () => {
       <Dialog open={isFilterDialogOpen} onClose={handleCloseFilterDialog} fullWidth maxWidth="sm">
         <DialogTitle>Filter Listings</DialogTitle>
         <DialogContent dividers>
-          <Stack spacing={2}>
-            <FormControl fullWidth size="small">
-              <InputLabel id="filter-verified-label">Verification</InputLabel>
-              <Select
-                labelId="filter-verified-label"
-                label="Verification"
-                value={filterDraft.verified}
-                onChange={handleFilterDraftChange('verified')}
-              >
-                <MenuItem value="all">All</MenuItem>
-                <MenuItem value="true">Verified</MenuItem>
-                <MenuItem value="false">Not Verified</MenuItem>
-              </Select>
-            </FormControl>
+          <Stack spacing={3}>
+            {isSuperAdmin && (
+              <Stack spacing={1}>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Ownership
+                </Typography>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="filter-owned-by-label">Owned By</InputLabel>
+                  <Select
+                    labelId="filter-owned-by-label"
+                    label="Owned By"
+                    value={filterDraft.ownedBy}
+                    onChange={handleFilterDraftChange('ownedBy')}
+                  >
+                    <MenuItem value="">All</MenuItem>
+                    {propertyManagerOptions.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label} ({option.value})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Stack>
+            )}
 
-            <TextField
-              label="Property Name"
-              size="small"
-              value={filterDraft.propertyName}
-              onChange={handleFilterDraftChange('propertyName')}
-              placeholder="e.g. Downtown Apartments"
-            />
+            <Stack spacing={1}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Recency
+              </Typography>
+              <FormControl fullWidth size="small">
+                <InputLabel id="filter-updated-label">Recently Updated</InputLabel>
+                <Select
+                  labelId="filter-updated-label"
+                  label="Recently Updated"
+                  value={filterDraft.updatedWithin}
+                  onChange={handleFilterDraftChange('updatedWithin')}
+                >
+                  <MenuItem value="any">Any time</MenuItem>
+                  <MenuItem value="7">Last 7 days</MenuItem>
+                  <MenuItem value="30">Last 30 days</MenuItem>
+                  <MenuItem value="90">Last 90 days</MenuItem>
+                </Select>
+              </FormControl>
+            </Stack>
 
-            <TextField
-              label="Unit Type"
-              size="small"
-              value={filterDraft.unitType}
-              onChange={handleFilterDraftChange('unitType')}
-              placeholder="e.g. Studio"
-            />
+            <Stack spacing={1}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Listing Details
+              </Typography>
+              <FormControl fullWidth size="small">
+                <InputLabel id="filter-listing-type-label">Listing Type</InputLabel>
+                <Select
+                  labelId="filter-listing-type-label"
+                  label="Listing Type"
+                  value={filterDraft.listingType}
+                  onChange={handleFilterDraftChange('listingType')}
+                >
+                  <MenuItem value="all">All</MenuItem>
+                  {listingTypeOptions.map((option) => (
+                    <MenuItem key={option.id} value={option.id}>
+                      {option.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl fullWidth size="small">
+                <InputLabel id="filter-unit-type-label">Unit Type</InputLabel>
+                <Select
+                  labelId="filter-unit-type-label"
+                  label="Unit Type"
+                  value={filterDraft.unitType}
+                  onChange={handleFilterDraftChange('unitType')}
+                >
+                  <MenuItem value="all">All</MenuItem>
+                  {unitTypeOptions.map((option) => {
+                    const optionLabel = option.name || option.label || option.id;
+                    return (
+                      <MenuItem key={option.id} value={option.id}>
+                        {optionLabel}
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+              <FormControl fullWidth size="small">
+                <InputLabel id="filter-property-type-label">Property Type</InputLabel>
+                <Select
+                  labelId="filter-property-type-label"
+                  label="Property Type"
+                  value={filterDraft.propertyType}
+                  onChange={handleFilterDraftChange('propertyType')}
+                >
+                  <MenuItem value="all">All</MenuItem>
+                  {propertyTypeOptions.map((option) => {
+                    const optionLabel = option.name || option.label || option.id;
+                    return (
+                      <MenuItem key={option.id} value={option.id}>
+                        {optionLabel}
+                      </MenuItem>
+                    );
+                  })}
+                </Select>
+              </FormControl>
+            </Stack>
 
-            <TextField
-              label="City"
-              size="small"
-              value={filterDraft.city}
-              onChange={handleFilterDraftChange('city')}
-              placeholder="e.g. New York"
-            />
+            <Stack spacing={1}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Pricing
+              </Typography>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  label="Min Rent"
+                  type="number"
+                  size="small"
+                  value={filterDraft.minRent}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (value === '' || Number(value) >= 0) {
+                      setFilterDraft((prev) => ({ ...prev, minRent: value }));
+                    }
+                  }}
+                  inputProps={{ min: 0 }}
+                />
+                <TextField
+                  label="Max Rent"
+                  type="number"
+                  size="small"
+                  value={filterDraft.maxRent}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (value === '' || Number(value) >= 0) {
+                      setFilterDraft((prev) => ({ ...prev, maxRent: value }));
+                    }
+                  }}
+                  inputProps={{ min: 0 }}
+                />
+              </Stack>
+            </Stack>
 
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField
-                label="Min View Count"
-                type="number"
-                size="small"
-                value={filterDraft.minViewCount}
-                onChange={handleFilterDraftChange('minViewCount')}
-                inputProps={{ min: 0 }}
-              />
-              <TextField
-                label="Max View Count"
-                type="number"
-                size="small"
-                value={filterDraft.maxViewCount}
-                onChange={handleFilterDraftChange('maxViewCount')}
-                inputProps={{ min: 0 }}
-              />
+            <Stack spacing={1}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Availability
+              </Typography>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  label="Available From"
+                  type="date"
+                  size="small"
+                  value={filterDraft.availabilityStart}
+                  onChange={handleFilterDraftChange('availabilityStart')}
+                  InputLabelProps={{ shrink: true }}
+                />
+                <TextField
+                  label="Available Until"
+                  type="date"
+                  size="small"
+                  value={filterDraft.availabilityEnd}
+                  onChange={handleFilterDraftChange('availabilityEnd')}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Stack>
+            </Stack>
+
+            <Stack spacing={1}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Content & Occupancy
+              </Typography>
+              <FormControl fullWidth size="small">
+                <InputLabel id="filter-furniture-present-label">Furniture Present</InputLabel>
+                <Select
+                  labelId="filter-furniture-present-label"
+                  label="Furniture Present"
+                  value={filterDraft.furniturePresent}
+                  onChange={handleFilterDraftChange('furniturePresent')}
+                >
+                  <MenuItem value="any">Any</MenuItem>
+                  <MenuItem value="with">With furniture details</MenuItem>
+                  <MenuItem value="without">Without furniture details</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl fullWidth size="small">
+                <InputLabel id="filter-pets-present-label">Pets Present</InputLabel>
+                <Select
+                  labelId="filter-pets-present-label"
+                  label="Pets Present"
+                  value={filterDraft.petsPresent}
+                  onChange={handleFilterDraftChange('petsPresent')}
+                >
+                  <MenuItem value="any">Any</MenuItem>
+                  <MenuItem value="with">Pets recorded</MenuItem>
+                  <MenuItem value="without">No pets recorded</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl fullWidth size="small">
+                <InputLabel id="filter-unit-images-label">Unit Images</InputLabel>
+                <Select
+                  labelId="filter-unit-images-label"
+                  label="Unit Images"
+                  value={filterDraft.unitImages}
+                  onChange={handleFilterDraftChange('unitImages')}
+                >
+                  <MenuItem value="any">Any</MenuItem>
+                  <MenuItem value="with">With unit images</MenuItem>
+                  <MenuItem value="without">Without unit images</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl fullWidth size="small">
+                <InputLabel id="filter-current-residents-label">Current Residents</InputLabel>
+                <Select
+                  labelId="filter-current-residents-label"
+                  label="Current Residents"
+                  value={filterDraft.hasCurrentResidents}
+                  onChange={handleFilterDraftChange('hasCurrentResidents')}
+                >
+                  <MenuItem value="any">Any</MenuItem>
+                  <MenuItem value="with">Residents recorded</MenuItem>
+                  <MenuItem value="without">No residents recorded</MenuItem>
+                </Select>
+              </FormControl>
             </Stack>
           </Stack>
         </DialogContent>

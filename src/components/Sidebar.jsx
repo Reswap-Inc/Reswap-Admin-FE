@@ -65,8 +65,9 @@ const Sidebar = ({ onClose }) => {
     "flex items-center gap-5 pl-4 pt-3 pb-2.5 rounded-lg text-white bg-maincolor text-md m-2";
   const normalLink =
     "flex items-center gap-5 pl-4 pt-3 pb-2.5 rounded-lg text-md text-maincolor bg-white m-2";
-    const profile=useSelector((state)=>state.getProfileSlice?.data)
- const menuItems = [
+  const profile = useSelector((state) => state.getProfileSlice?.data);
+  const isSuperAdmin = Boolean(profile?.params?.Roles);
+  const menuItems = [
     {
       path: "/web/admin/home",
       icon: MdPeople,
@@ -82,16 +83,13 @@ const Sidebar = ({ onClose }) => {
     //       },
     //     ]
     //   : []),
-    ...(profile?.custom_fields?.isLeanAdmin && profile?.params?.Roles
-      ? [
-          {
-            path: "/web/admin/users",
-            icon: MdPeople,
-            title: "User Management",
-          },
-        ]
-      : []
-    ),
+    ...(isSuperAdmin
+      ? [{
+          path: "/web/admin/users",
+          icon: MdPeople,
+          title: "User Management",
+        }]
+      : []),
     {
       path: "/web/admin/admin-chat",
       icon: MdChat,

@@ -123,6 +123,18 @@ const tableHead = [
 const UserManagement = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { data: profile, loading: profileLoading } = useSelector(
+    (state) => state.getProfileSlice ?? { data: null, loading: false }
+  );
+  const isSuperAdmin = Boolean(profile?.params?.Roles);
+
+  useEffect(() => {
+    if (profileLoading) return;
+    if (!profile || Array.isArray(profile) || Object.keys(profile).length === 0) return;
+    if (!isSuperAdmin) {
+      navigate("/web/admin/home", { replace: true });
+    }
+  }, [profileLoading, profile, isSuperAdmin, navigate]);
   const [anchorEl, setAnchorEl] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
@@ -672,10 +684,17 @@ console.log("bannnnnnnnnnnnn",res)
   };
 
   useEffect(() => {
-    console.log("form++++++++++====",page)
+    if (!isSuperAdmin) {
+      return;
+    }
     dispatch(getAllUserThunk(form));
     
-  }, [dispatch, page, rowsPerPage, searchParam, sortField, sortOrder, filterPayload]);
+  }, [dispatch, page, rowsPerPage, searchParam, sortField, sortOrder, filterPayload, isSuperAdmin]);
+
+  const profileLoaded = !profileLoading && profile && !Array.isArray(profile) && Object.keys(profile).length > 0;
+  if (profileLoaded && !isSuperAdmin) {
+    return null;
+  }
 
   return (
         <Box p={2} style={{ backgroundColor: "#FAFAFA" }} className="user-tour">

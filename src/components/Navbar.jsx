@@ -72,6 +72,7 @@ const Navbar = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const profile = useSelector((state) => state.getProfileSlice?.data);
+  const isSuperAdmin = Boolean(profile?.params?.Roles);
   const profileError = useSelector((state) => state.getProfileSlice?.error);
   const unreadCount = useSelector((state) => state.notification?.unreadCount || 0);
   const unreadNotifications = useSelector((state) => 
@@ -129,7 +130,7 @@ const Navbar = () => {
         // Show popup instead of immediate redirect
         setShowUnauthorizedDialog(true);
       } else {
-        sessionStorage.setItem("isAdmin", profile?.custom_fields?.isLeanAdmin);
+        sessionStorage.setItem("isAdmin", String(isSuperAdmin));
       }
     }
   }, [profile, profileError]);

@@ -64,7 +64,8 @@ const Ctable = ({ tableHead, rowData, tableName, pagination, setPage, setRowsPer
     setAnchorEl(event.currentTarget);
   };
   // const profile = useSelector((state) => state.getProfileSlice?.data?.data)
-  const profile = useSelector((state) => state.getProfileSlice?.data)
+  const profile = useSelector((state) => state.getProfileSlice?.data);
+  const isSuperAdmin = Boolean(profile?.params?.Roles);
   const handleClose = () => {
     setAnchorEl(null);
   };
@@ -432,7 +433,7 @@ const Ctable = ({ tableHead, rowData, tableName, pagination, setPage, setRowsPer
             </ListItemIcon>
             <ListItemText primary="Reject" />
           </ListItem> */}
-          {profile?.custom_fields?.isLeanAdmin && profile?.params?.Roles && (
+          {isSuperAdmin && (
             <>
               <ListItem button sx={{ cursor: "pointer" }} onClick={onSubmitApprove}>
                 <ListItemIcon>

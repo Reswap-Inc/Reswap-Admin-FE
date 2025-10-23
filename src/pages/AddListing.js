@@ -133,26 +133,49 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
   });
   const furnishingItems = furniture;
   const convertImageUrlToBase64 = async (url) => {
-    const response = await fetch(url);
-    const blob = await response.blob();
-  console.log("blocbbbbbbbbbbbbbbbbbbbbbbbbbb",blob)
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
+    try {
+      const response = await fetch(url, { credentials: "include" });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status}`);
+      }
+      const blob = await response.blob();
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error) {
+      console.error("Error converting image to base64:", error);
+      return null;
+    }
   };
   
-  const convertFurnitureImagesToBase64 = async (imageUrls) => {
-    try {
-      return await Promise.all(
-        imageUrls.map(url => convertImageUrlToBase64(url))
-      );
-    } catch (error) {
-      console.error("Error converting images:", error);
+  const convertFurnitureImagesToBase64 = async (imageUrls = []) => {
+    if (!Array.isArray(imageUrls) || imageUrls.length === 0) {
       return [];
     }
+    let conversionError = false;
+    const converted = await Promise.all(
+      imageUrls.map(async (source) => {
+        if (!source) return null;
+        if (typeof source === "string" && source.startsWith("data:")) {
+          return source;
+        }
+        if (typeof source === "string") {
+          const base64 = await convertImageUrlToBase64(source);
+          if (!base64) {
+            conversionError = true;
+          }
+          return base64;
+        }
+        return null;
+      })
+    );
+    if (conversionError) {
+      throw new Error("Unable to process one or more images. Please re-upload the images and try again.");
+    }
+    return converted.filter(Boolean);
   };
   
   
@@ -255,7 +278,7 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
   const [formData, setFormData] = React.useState(initialState);
   const location = useLocation();
   const { editMode, listingId } = location.state || {};
-  const listingData = useSelector((state) => state.listing.listings?.body);
+  const listingData = useSelector((state) => state.listing.detail);
   const currentPath = location.pathname;
 
   const dispatch = useDispatch();
@@ -269,6 +292,16 @@ console.log(errors,"eeeeeeeeeeeeeeeeeeeeeerrrrrrrrrrrrrrrrrrrrro")
   useEffect(() => {
     if (editMode && listingData) {
       const conf = listingData?.configurationHouse || {};
+      setUnitImages(
+        Array.isArray(listingData?.unitImages) && listingData.unitImages.length
+          ? [...listingData.unitImages]
+          : Array(3).fill(null)
+      );
+      setFurnitureImages(
+        Array.isArray(listingData?.furnitureImages) && listingData.furnitureImages.length
+          ? [...listingData.furnitureImages]
+          : Array(3).fill(null)
+      );
       setFormData({
         listingType: listingData?.listingType,
         propertyType: listingData?.propertyType?.id,
@@ -2740,5 +2773,3 @@ Roommate Preferences <span className="text-red-900">*</span>
     </GradientBox>
   );
 };
-
-

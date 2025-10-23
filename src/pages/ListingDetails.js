@@ -33,6 +33,9 @@ import PauseCircleIcon from "@mui/icons-material/PauseCircle";
 import PlayCircleIcon from "@mui/icons-material/PlayCircle";
 import ArchiveIcon from "@mui/icons-material/Archive";
 import BlockIcon from "@mui/icons-material/Block";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import EmailIcon from "@mui/icons-material/Email";
+import PhoneIcon from "@mui/icons-material/Phone";
 import { getListingThunk } from "../network/ListingThunk";
 import { updateListingFunction, deleteListingThunk, approveListing } from "../network/ListingThunk";
 import { useNavigate } from "react-router-dom";
@@ -76,22 +79,14 @@ const ListingDetails = () => {
   const [openmode, setopenmode] = React.useState(false);
   const [message, setMessage] = React.useState("");
   const navigate = useNavigate();
-  // Assuming your Redux state looks like { listing: { data: { body: ... }, status: 'idle' | 'loading' | 'succeeded' | 'failed', error: null | string } }
-  const {error,listings,loading} = useSelector((state) => state.listing );
-  const data = useSelector((state) => state.listing );
-  const property = listings?.body; // Access the nested body property
-  console.log("CCurrent Property", property,data);
+  const { detail: currentProperty, loading, error } = useSelector((state) => state.listing);
+  const profile = useSelector((state) => state.getProfileSlice?.data);
+  const isSuperAdmin = Boolean(profile?.params?.Roles);
   useEffect(() => {
-  
-      console.log(`Dispatching getListingThunk for ${listingId}`);
+    if (listingId) {
       dispatch(getListingThunk(listingId));
-    
-  }, [dispatch, listingId]); // <- include listingId here
-  
-
-  
-  const currentProperty = property; // Replace propertyData with property if using Redux fetch
-console.log("CCurrent Property", property);
+    }
+  }, [dispatch, listingId]);
 
   // ---- Loading State ----
   if (loading) {
@@ -114,7 +109,7 @@ console.log("CCurrent Property", property);
   }
 
   // // ---- No Data State ----
-  if (!property) {
+  if (!currentProperty) {
     // If not loading and no error, but still no property, means not found or initial state
     if (!loading && !error) {
       return (
@@ -136,6 +131,9 @@ console.log("CCurrent Property", property);
       const form = { listingId: currentProperty?.listingId, status: newStatus };
       const res = await updateListingFunction(form);
       toast.success(res?.data?.status?.message || res?.data?.message || "Listing status updated successfully");
+      if (!isSuperAdmin && newStatus === 'active') {
+        toast.info("Listing activation request submitted for super admin review.");
+      }
       handleActionsClose();
       dispatch(getListingThunk(currentProperty?.listingId)); // Refresh details
     } catch (error) {
@@ -144,6 +142,11 @@ console.log("CCurrent Property", property);
   };
 
   const onSubmitApprove = async () => {
+    if (!isSuperAdmin) {
+      toast.error("Only super admins can approve listings");
+      handleActionsClose();
+      return;
+    }
     try {
       const form = {
         listingId: currentProperty?.listingId,
@@ -159,6 +162,11 @@ console.log("CCurrent Property", property);
   };
 
   const onSubmitReject = async () => {
+    if (!isSuperAdmin) {
+      toast.error("Only super admins can reject listings");
+      handleActionsClose();
+      return;
+    }
     try {
       const form = {
         listingId: currentProperty?.listingId,
@@ -177,6 +185,11 @@ console.log("CCurrent Property", property);
   };
 
   const handleDelete = async () => {
+    if (!isSuperAdmin) {
+      toast.error("Only super admins can delete listings");
+      handleActionsClose();
+      return;
+    }
     setDeleting(true);
     setDeleteApiMessage("");
     try {
@@ -208,6 +221,25 @@ console.log("CCurrent Property", property);
     currentProperty?.location?.postalCode,
     currentProperty?.location?.country
   ].filter(Boolean).join(', '); // Filter out empty parts and join
+  const managerUser = currentProperty?.propertyManagerDetails?.user;
+  const fallbackOwner = currentProperty?.ownerUser;
+  const ownerSource = managerUser || fallbackOwner || currentProperty?.propertyManagerDetails;
+  const ownerName = ownerSource?.given_name || ownerSource?.name || ownerSource?.preferred_username || ownerSource?.sub || null;
+  const ownerEmail = ownerSource?.email || ownerSource?.preferred_username || null;
+  const ownerPhone = ownerSource?.phone_number || ownerSource?.phoneNumber || null;
+  const ownerLabel = ownerName || ownerEmail || ownerPhone || null;
+  const isActiveListing = currentProperty?.status === 'active';
+  const showVerifiedBadge = isActiveListing && currentProperty?.verified;
+  const verifierDisplay = currentProperty?.verifiedByUser?.given_name
+    || currentProperty?.verifiedByUser?.preferred_username
+    || currentProperty?.verifiedBy
+    || null;
+  const handleImageError = (event) => {
+    if (event?.target) {
+      event.target.onerror = null;
+      event.target.src = 'https://via.placeholder.com/320x200?text=Image+Unavailable';
+    }
+  };
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -235,15 +267,39 @@ console.log("CCurrent Property", property);
               {currentProperty?.propertyName || 'N/A'}
             </Typography>
             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+              {ownerLabel && (
+                <Chip
+                  icon={<AccountCircleIcon />}
+                  label={`Owner: ${ownerLabel}`}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
+              {ownerEmail && ownerEmail !== ownerLabel && (
+                <Chip
+                  icon={<EmailIcon />}
+                  label={ownerEmail}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
+              {ownerPhone && ownerPhone !== ownerLabel && (
+                <Chip
+                  icon={<PhoneIcon />}
+                  label={ownerPhone}
+                  size="small"
+                  variant="outlined"
+                />
+              )}
               <Chip
                 label={currentProperty?.status ? currentProperty.status.charAt(0).toUpperCase() + currentProperty.status.slice(1) : 'Unknown Status'}
                 color={currentProperty?.status === 'active' ? 'success' : 'default'}
                 size="small"
               />
-              {currentProperty?.verified && (
+              {showVerifiedBadge && (
                 <Chip
                   icon={<VerifiedIcon />}
-                  label={`Verified ${currentProperty?.verifiedBy ? `by ${currentProperty.verifiedBy}` : ''}`}
+                  label={`Verified${verifierDisplay ? ` by ${verifierDisplay}` : ''}`}
                   color="info"
                   size="small"
                   variant="outlined"
@@ -288,26 +344,38 @@ console.log("CCurrent Property", property);
           <List>
             <ListItem button onClick={() => navigate("/web/admin/home/add-listing", { state: { editMode: true, listingId: currentProperty?.listingId } })}>
               <ListItemIcon><EditIcon /></ListItemIcon>
-              <ListItemText primary="Edit" />
+              <ListItemText primary="Edit Listing" />
             </ListItem>
             <ListItem button onClick={onSubmitHibernate}>
               <ListItemIcon>
                 {currentProperty?.status === 'active' ? <PauseCircleIcon color="warning" /> : <PlayCircleIcon color="success" />}
               </ListItemIcon>
-              <ListItemText primary={currentProperty?.status === 'active' ? 'Hibernate' : 'Unhibernate'} />
+              <ListItemText
+                primary={
+                  currentProperty?.status === 'active'
+                    ? 'Mark as Inactive'
+                    : isSuperAdmin
+                      ? 'Activate Listing'
+                      : 'Submit for Activation'
+                }
+              />
             </ListItem>
-            <ListItem button onClick={onSubmitApprove}>
-              <ListItemIcon><ArchiveIcon /></ListItemIcon>
-              <ListItemText primary="Approve" />
-            </ListItem>
-            <ListItem button onClick={() => setopenmode(true)}>
-              <ListItemIcon><BlockIcon /></ListItemIcon>
-              <ListItemText primary="Reject" />
-            </ListItem>
-            <ListItem button onClick={() => setDeleteDialogOpen(true)}>
-              <ListItemIcon><CancelIcon color="error" /></ListItemIcon>
-              <ListItemText primary="Delete" primaryTypographyProps={{ color: 'error' }} />
-            </ListItem>
+            {isSuperAdmin && (
+              <>
+                <ListItem button onClick={onSubmitApprove}>
+                  <ListItemIcon><ArchiveIcon /></ListItemIcon>
+                  <ListItemText primary="Approve" />
+                </ListItem>
+                <ListItem button onClick={() => setopenmode(true)}>
+                  <ListItemIcon><BlockIcon /></ListItemIcon>
+                  <ListItemText primary="Reject" />
+                </ListItem>
+                <ListItem button onClick={() => setDeleteDialogOpen(true)}>
+                  <ListItemIcon><CancelIcon color="error" /></ListItemIcon>
+                  <ListItemText primary="Delete" primaryTypographyProps={{ color: 'error' }} />
+                </ListItem>
+              </>
+            )}
           </List>
         </Popover>
         <Modal open={openmode} onClose={() => setopenmode(false)}>
@@ -375,7 +443,7 @@ console.log("CCurrent Property", property);
                     image={img}
                     alt={`Unit Image ${index + 1}`}
                     sx={{ borderRadius: 1, height: 200, objectFit: 'cover' }}
-                    // onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Available'; }} // Basic fallback
+                    onError={handleImageError}
                   />
                 </Grid>
               ))}
@@ -388,7 +456,7 @@ console.log("CCurrent Property", property);
                     image={currentProperty?.floorPlanImage}
                     alt="Floor Plan"
                     sx={{ borderRadius: 1, height: 200, objectFit: 'contain', border: '1px solid', borderColor: 'divider' }}
-                    // onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/300x200?text=FloorPlan+Not+Available'; }}
+                    onError={handleImageError}
                   />
                 </Grid>
               )}
@@ -401,7 +469,7 @@ console.log("CCurrent Property", property);
                     image={img}
                     alt={`Furniture Image ${index + 1}`}
                     sx={{ borderRadius: 1, height: 200, objectFit: 'cover' }}
-                    // onError={(e) => { e.target.onerror = null; e.target.src = 'https://via.placeholder.com/300x200?text=Image+Not+Available'; }}
+                    onError={handleImageError}
                   />
                 </Grid>
               ))}

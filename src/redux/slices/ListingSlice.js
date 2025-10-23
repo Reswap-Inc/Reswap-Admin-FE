@@ -4,7 +4,8 @@ import { getListingThunk, addListingThunk, updateListingThunk, deleteListingThun
 const listingSlice = createSlice({
   name: "listing",
   initialState: {
-    listings: [],
+    detail: null,
+    meta: null,
     loading: false,
     error: null,
   },
@@ -14,26 +15,32 @@ const listingSlice = createSlice({
       .addCase(getListingThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.meta = null;
       })
       .addCase(getListingThunk.fulfilled, (state, action) => {
         state.loading = false;
-        state.listings = action.payload;
+        state.detail = action.payload?.body ?? null;
+        state.meta = action.payload?.status ?? null;
       })
       .addCase(getListingThunk.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.payload || action.error?.message || "Failed to fetch listing";
+        state.detail = null;
+        state.meta = null;
       })
       .addCase(addListingThunk.fulfilled, (state, action) => {
-        state.listings.push(action.payload);
+        state.detail = action.payload?.body ?? state.detail;
+        state.meta = action.payload?.status ?? state.meta;
       })
       .addCase(updateListingThunk.fulfilled, (state, action) => {
-        const index = state.listings.findIndex((item) => item.id === action.payload.id);
-        if (index !== -1) {
-          state.listings[index] = action.payload;
+        // If we already have the same listing loaded, refresh it with the latest payload (if available)
+        if (state.detail && action.payload?.body && action.payload.body?.listingId === state.detail.listingId) {
+          state.detail = action.payload.body;
         }
       })
       .addCase(deleteListingThunk.fulfilled, (state, action) => {
-        state.listings = state.listings.filter((item) => item.id !== action.payload.id);
+        state.detail = null;
+        state.meta = null;
       });
   },
 });
