@@ -39,7 +39,6 @@ import { getProfile } from "../network/Authapi";
 import { getConfiguration } from "../network/generalApi";
 
 const FILTER_DEFAULTS = {
-  ownedBy: '',
   updatedWithin: 'any',
   listingType: 'all',
   unitType: 'all',
@@ -55,13 +54,12 @@ const FILTER_DEFAULTS = {
 };
 
 const tableHead = [
-  { id: "listingId", label: "Listing ID" },
-  { id: "title", label: "Title" },
   { id: "propertyName", label: "Property Name" },
+  { id: "title", label: "Title" },
   { id: "unitType", label: "Unit Type", sortable: false },
   { id: "location", label: "Location", sortable: false },
+  { id: "listingId", label: "Listing ID" },
   { id: "viewCount", label: "View Count" },
-  { id: "verified", label: "Verified" },
   { id: "status", label: "Status" },
   { id: "actions", label: "Actions", sortable: false },
 ];
@@ -123,34 +121,11 @@ const Listing = () => {
   const { listings, loading, error } = useSelector(
     (state) => state.AllListingSlice
   );
-  const propertyManagerOptions = useMemo(() => {
-    if (!isSuperAdmin) return [];
-    const map = new Map();
-    const source = listings?.body ?? [];
-    source.forEach((listing) => {
-      const managerSub = listing?.propertyManagerDetails?.sub || listing?.ownerUserId;
-      if (!managerSub) return;
-      const managerUser = listing?.propertyManagerDetails?.user || listing?.ownerUser;
-      const displayName =
-        managerUser?.given_name ||
-        managerUser?.preferred_username ||
-        managerUser?.name ||
-        managerSub;
-      if (!map.has(managerSub)) {
-        map.set(managerSub, displayName);
-      }
-    });
-    return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
-  }, [isSuperAdmin, listings]);
   const filterPayload = useMemo(() => {
     const payload = {};
 
     if (statusFilter && statusFilter !== 'all') {
       payload.status = statusFilter;
-    }
-
-    if (isSuperAdmin && filters.ownedBy) {
-      payload['propertyManagerDetails.sub'] = { $eq: filters.ownedBy };
     }
 
     if (filters.updatedWithin && filters.updatedWithin !== 'any') {
@@ -166,11 +141,15 @@ const Listing = () => {
     }
 
     if (filters.unitType && filters.unitType !== 'all' && filters.unitType) {
-      payload.unitType = filters.unitType;
+      // After mapping, unitType becomes an object with {id, name, ...}
+      // So we need to filter on unitType.id
+      payload['unitType.id'] = filters.unitType;
     }
 
     if (filters.propertyType && filters.propertyType !== 'all' && filters.propertyType) {
-      payload.propertyType = filters.propertyType;
+      // After mapping, propertyType becomes an object with {id, name, ...}
+      // So we need to filter on propertyType.id
+      payload['propertyType.id'] = filters.propertyType;
     }
 
     const applyLengthFilter = (key, mode) => {
@@ -219,7 +198,6 @@ const Listing = () => {
   }, [filters, isSuperAdmin, statusFilter]);
   const hasActiveFilters = useMemo(() => {
     if (statusFilter && statusFilter !== 'all') return true;
-    if (isSuperAdmin && filters.ownedBy) return true;
     if (filters.updatedWithin && filters.updatedWithin !== 'any') return true;
     if (filters.listingType && filters.listingType !== 'all') return true;
     if (filters.unitType && filters.unitType !== 'all' && filters.unitType) return true;
@@ -392,7 +370,7 @@ const Listing = () => {
             <ToggleButton value="all">All</ToggleButton>
             <ToggleButton value="active">Active</ToggleButton>
             <ToggleButton value="pending">Pending</ToggleButton>
-            <ToggleButton value="inactive">Inactive</ToggleButton>
+            <ToggleButton value="inactive">Hidden</ToggleButton>
             <ToggleButton value="draft">Draft</ToggleButton>
             <ToggleButton value="rejected">Rejected</ToggleButton>
           </ToggleButtonGroup>
@@ -506,30 +484,6 @@ const Listing = () => {
         <DialogTitle>Filter Listings</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={3}>
-            {isSuperAdmin && (
-              <Stack spacing={1}>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Ownership
-                </Typography>
-                <FormControl fullWidth size="small">
-                  <InputLabel id="filter-owned-by-label">Owned By</InputLabel>
-                  <Select
-                    labelId="filter-owned-by-label"
-                    label="Owned By"
-                    value={filterDraft.ownedBy}
-                    onChange={handleFilterDraftChange('ownedBy')}
-                  >
-                    <MenuItem value="">All</MenuItem>
-                    {propertyManagerOptions.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label} ({option.value})
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Stack>
-            )}
-
             <Stack spacing={1}>
               <Typography variant="subtitle2" color="text.secondary">
                 Recency
@@ -759,4 +713,3 @@ const Listing = () => {
 };
 
 export default Listing;
-

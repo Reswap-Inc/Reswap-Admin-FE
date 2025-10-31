@@ -251,15 +251,6 @@ const Ctable = ({ tableHead, rowData, tableName, pagination, setPage, setRowsPer
               >
                 <TableCell sx={{
                   fontFamily: "Open Sans",
-                  fontSize: isMobile ? "0.75rem" : "0.875rem",
-                  padding: isMobile ? "8px 4px" : "16px",
-                  whiteSpace: "nowrap"
-                }}>
-                  {rowData?.listingId}
-                  {/* {console.log(rowData,"listingId++++++++++========")} */}
-                </TableCell>
-                <TableCell sx={{
-                  fontFamily: "Open Sans",
                   maxWidth: isMobile ? 120 : 200,
                   fontSize: isMobile ? "0.75rem" : "0.875rem",
                   padding: isMobile ? "8px 4px" : "16px"
@@ -291,20 +282,23 @@ const Ctable = ({ tableHead, rowData, tableName, pagination, setPage, setRowsPer
                 }}>
                   {truncateText(`${rowData?.location?.address}, ${rowData?.location?.city}, ${rowData?.location?.state}, ${rowData?.location?.country}`, 40)}
                 </TableCell>
+                
+                <TableCell sx={{
+                  fontFamily: "Open Sans",
+                  fontSize: isMobile ? "0.75rem" : "0.875rem",
+                  padding: isMobile ? "8px 4px" : "16px",
+                  whiteSpace: "nowrap"
+                }}>
+                  {rowData?.listingId}
+                  {/* {console.log(rowData,"listingId++++++++++========")} */}
+                </TableCell>
+
                 <TableCell sx={{
                   fontSize: isMobile ? "0.75rem" : "0.875rem",
                   padding: isMobile ? "8px 4px" : "16px",
                   whiteSpace: "nowrap"
                 }}>
                   {rowData?.viewCount}
-                </TableCell>
-                <TableCell sx={{
-                  color: rowData?.verified ? "green" : "orange",
-                  fontSize: isMobile ? "0.75rem" : "0.875rem",
-                  padding: isMobile ? "8px 4px" : "16px",
-                  whiteSpace: "nowrap"
-                }}>
-                  {rowData?.verified ? "Yes" : "Pending"}
                 </TableCell>
                 {/* <TableCell
         sx={{ 
@@ -419,7 +413,15 @@ const Ctable = ({ tableHead, rowData, tableName, pagination, setPage, setRowsPer
             <ListItemIcon>
               {row?.status === 'active' ? <PauseCircleIcon color="warning" /> : <PlayCircleIcon color="success" />}
             </ListItemIcon>
-            <ListItemText primary={row?.status === 'active' ? 'Hibernate' : 'Unhibernate'} />
+            <ListItemText
+              primary={
+                row?.status === 'active'
+                  ? 'Hide Listing'
+                  : isSuperAdmin
+                    ? 'Activate Listing'
+                    : 'Submit for Activation'
+              }
+            />
           </ListItem>
           {/* <ListItem button sx={{ cursor: "pointer" }} onClick={onSubmitApprove}>
             <ListItemIcon>

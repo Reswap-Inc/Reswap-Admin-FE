@@ -368,7 +368,7 @@ const ListingDetails = () => {
               <ListItemText
                 primary={
                   currentProperty?.status === 'active'
-                    ? 'Mark as Inactive'
+                    ? 'Hide Listing'
                     : isSuperAdmin
                       ? 'Activate Listing'
                       : 'Submit for Activation'

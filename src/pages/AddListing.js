@@ -93,6 +93,82 @@ export default function AddListing() {
   const [errors, setErrors] = useState({});
   const countries = Country.getAllCountries();
   const navigate=useNavigate()
+  // Map backend error field names to frontend form field names
+  const errorFieldMap = {
+    'title': 'title',
+    'description': 'description',
+    'propertyType': 'propertyType',
+    'unitType': 'unitType',
+    'saleType': 'saleType',
+    'listingType': 'listingType',
+    'roomType': 'roomType',
+    'price': 'price',
+    'rent': 'price',
+    'location': 'location',
+    'postalCode': 'location',
+    'unitImages': 'unitImages',
+    'floorPlanImage': 'floorPlanImage',
+    'availability': 'availability',
+    'propertyName': 'propertyName',
+  };
+
+  // Parse error message to extract field name
+  const parseErrorField = (errorMessage) => {
+    if (!errorMessage || typeof errorMessage !== 'string') return null;
+    
+    // Try to extract field name from error messages like:
+    // "title field cannot be empty"
+    // "unitType field is mandatory"
+    const fieldMatch = errorMessage.match(/^(w+)s+field/i);
+    if (fieldMatch && fieldMatch[1]) {
+      return errorFieldMap[fieldMatch[1]] || null;
+    }
+    
+    // Try to match field names directly
+    for (const backendField in errorFieldMap) {
+      if (errorMessage.toLowerCase().includes(backendField.toLowerCase())) {
+        return errorFieldMap[backendField];
+      }
+    }
+    
+    return null;
+  };
+
+  // Scroll to the field with error
+  const scrollToField = (fieldName) => {
+    if (!fieldName) return;
+    
+    // Try to find the field by various selectors
+    const selectors = [
+      `[name="${fieldName}"]`,
+      `#${fieldName}`,
+      `[data-field="${fieldName}"]`,
+      `.field-${fieldName}`,
+    ];
+    
+    for (const selector of selectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Try to focus if it's an input element
+        if (element.focus) {
+          setTimeout(() => element.focus(), 300);
+        }
+        return;
+      }
+    }
+    
+    // If field not found by name, try to find section headers
+    const headers = document.querySelectorAll('h6, .MuiTypography-h6');
+    for (const header of headers) {
+      const text = header.textContent.toLowerCase();
+      if (text.includes(fieldName.toLowerCase())) {
+        header.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+    }
+  };
+
   const CONFIGKEYS = [
     "roommatePreferencesOptions",
     "foodPreferencesOptions",
@@ -121,6 +197,7 @@ export default function AddListing() {
   const [leaseType, setLeaseType] = useState([]);
   const [roomType, setRoomType] = useState([]);
   const [unitType, setUnitType] = useState([]);
+  const [saleType, setSaleType] = useState([]);
   const [isNearByPlacesFetching, setIsNearByPlacesFetching] = useState(false);
   const [nearByPlaces, setNearByPlaces] = useState([]);
 
@@ -184,6 +261,7 @@ export default function AddListing() {
     listingType: "unit",
     propertyType: "",
     unitType: "",
+    saleType: "RSQT00002", // Default to Leasing
     roomType: "RSLT00005",
     title: "",
     propertyName: "",
@@ -443,8 +521,14 @@ export default function AddListing() {
 
         //unitType
         const unitType = await getConfiguration("unitType"); // Provide the required key
-        if (roomType?.body?.items) {
+        if (unitType?.body?.items) {
           setUnitType(unitType.body.items);
+        }
+
+        //saleType
+        const saleType = await getConfiguration("saleType");
+        if (saleType?.body?.items) {
+          setSaleType(saleType.body.items);
         }
       } catch (error) {
         console.error("Failed to fetch roommate preferences:", error);
@@ -591,6 +675,14 @@ const handleImageRemove = (index, type) => {
     }));
     setErrors((prev) => ({ ...prev, unitType: "" }));
   };
+  const handleSaleTypeSelect = (type) => {
+    setFormData((prev) => ({
+      ...prev,
+      saleType: type,
+    }));
+    setErrors((prev) => ({ ...prev, saleType: "" }));
+  };
+
   const handleRoomTypeSelect = (type) => {
     setFormData((prev) => ({
       ...prev,
@@ -969,7 +1061,16 @@ const unitImage= await convertFurnitureImagesToBase64(formData.unitImages)
        
       } else {
         // Display error message from the API or a generic error message
-        const errorMessage = error.response?.data?.message || error.message || "An error occurred. Please try again.";
+        const errorMessage = error.response?.data?.status?.message || error.response?.data?.message || error.message || "An error occurred. Please try again.";
+        
+        // Try to parse and scroll to the error field
+        const fieldName = parseErrorField(errorMessage);
+        if (fieldName) {
+          scrollToField(fieldName);
+          // Also set the error in state for the field
+          setErrors((prev) => ({ ...prev, [fieldName]: errorMessage }));
+        }
+        
         toast.error(errorMessage, {
           position: "top-right",
           autoClose: 3000,
@@ -1372,6 +1473,45 @@ const getToggleOptions = (currentValue, type) => {
                 {errors.unitType}
               </Typography>
             )}
+
+            <Typography variant="h6" sx={{ color: "#10552F", mb: 3, mt: 3 }}>
+              Select Sale Type <span className="text-red-900">*</span>
+            </Typography>
+            <Box display="flex" flexWrap="wrap" gap={1} mt={1} mb={2}>
+              {saleType?.map((type) => (
+                <Button
+                  key={type.id}
+                  variant={
+                    formData.saleType === type.id ? "contained" : "outlined"
+                  }
+                  onClick={() => handleSaleTypeSelect(type.id)}
+                  sx={{
+                    borderRadius: "20px",
+                    textTransform: "none",
+                    fontSize: "14px",
+                    backgroundColor:
+                      formData.saleType === type.id ? "#23BB67" : "white",
+                    color: formData.saleType === type.id ? "white" : "#10552F",
+                    border: `1px solid ${formData.saleType === type.id ? "#23BB67" : "#10552F"}`,
+                    "&:hover": {
+                      backgroundColor:
+                        formData.saleType === type.id
+                          ? "#10552F"
+                          : "rgba(35, 187, 103, 0.1)",
+                    },
+                  }}
+                >
+                  {type.name}
+                </Button>
+              ))}
+            </Box>
+
+            {errors?.saleType && (
+              <Typography sx={{ color: "error.main", mt: 1 }}>
+                {errors.saleType}
+              </Typography>
+            )}
+
 
             {formData.listingType !== "unit" && (
               <>
