@@ -759,6 +759,14 @@ console.log("bannnnnnnnnnnnn",res)
             >
               Notify{selectedCount > 0 ? ` (${selectedCount})` : ''}
             </Button>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate("/web/admin/users/add")}
+              sx={{ ml: 1 }}
+            >
+              Add User
+            </Button>
           </Stack>
         </Stack>
       </Box>

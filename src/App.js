@@ -10,7 +10,7 @@ import AddListing from "./pages/AddListing";
 import ListingDetails from "./pages/ListingDetails";
 import AddListing11 from "./pages/rough";
 
-import AddUser from "./pages/Adduser";
+import AddUser from "./pages/AddUser";
 import Usermanagement from "./pages/Usermanagement";
 import UserProfile from "./pages/UserProfile";
 import ChatApp from "./pages/Chatapp";
@@ -97,7 +97,7 @@ const App = () => {
 
           {/* User Management */}
           <Route path="users" element={<Usermanagement />} />
-          {/* <Route path="users/add" element={<AddUser />} /> */}
+          <Route path="users/add" element={<AddUser />} />
           {/* <Route path="users/profile" element={<UserProfile />} /> */}
 
           {/* Chat */}
